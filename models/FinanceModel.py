@@ -295,3 +295,20 @@ class FinanceModel:
         cursor.close()
         dbc.close()
         return result
+    
+
+    @staticmethod
+    def select_info_from_id_transaction(id_tr):
+        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        _SQL = """SELECT * FROM transactions WHERE id = %s"""
+        
+        cursor.execute(_SQL,(id_tr,))
+        result = cursor.fetchall()
+
+        
+        cursor.close()
+        dbc.close()
+        return result[0]

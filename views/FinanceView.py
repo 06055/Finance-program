@@ -547,12 +547,13 @@ class FinanceView(Tk):
         self.state("zoomed")
 
 
+
     def apply_row_colors(self, tree):
         for index, item in enumerate(tree.get_children()):
             tag = "evenrow" if index % 2 == 0 else "oddrow"
             tree.item(item, tags=(tag,))
             values = tree.item(item, "values")
-            transaction_type = values[4]  
+            transaction_type = values[3]  
             if transaction_type == "Доход":
                 tree.item(item, tags=(tag, "income"))
             elif transaction_type == "Расход":
@@ -586,7 +587,6 @@ class FinanceView(Tk):
         self.load_icons('window_transaction', self.controller_root.title_icons)
 
 
-
     def window_transaction(self):
         self.creater_window()
 
@@ -599,7 +599,7 @@ class FinanceView(Tk):
         vsb = ttk.Scrollbar(self.table_frame, orient="vertical")
         vsb.pack(side="right", fill="y")
 
-        columns = ('ID', "Название транзакции", "Категория", "Подкатегория", "Тип транзакции", "Сумма", "Тип валюты", "Карта", "Дата транзакции", "Редактирование/Удаление")
+        columns = ("Название транзакции", "Категория", "Подкатегория", "Тип транзакции", "Сумма", "Тип валюты", "Карта", "Дата транзакции")
 
         tree = ttk.Treeview(self.table_frame, columns=columns, show="headings", yscrollcommand=vsb.set)
         tree.pack(fill="both", expand=True)
@@ -611,39 +611,29 @@ class FinanceView(Tk):
 
         transactions = self.controller_root.update_transaction()
 
-        def edit_transaction(transaction_id):
-            print(f"Редактирование транзакции с ID: {transaction_id}")
-
-        def delete_transaction(transaction_id):
-            print(f"Удаление транзакции с ID: {transaction_id}")
-
-        screen_width = self.winfo_screenwidth()  
-        screen_height = self.winfo_screenheight()  
-
-        offset_x = screen_width * 1  
-        offset_y = 99
-
-        def create_label_with_binding(transaction, label_text, command, fg_color, bg_color):
-
-            label = Label(self, text=label_text, fg=fg_color, bg=bg_color, cursor="hand2")
-            label.bind("<Button-1>", lambda e: command(transaction[0]))  
-            return label
-
         for index, transaction in enumerate(transactions):
             background_tag = "evenrow" if index % 2 == 0 else "oddrow"
+            tree.insert("", "end", values=transaction[1:], tags=(background_tag), iid=transaction[0])  
 
-            tree.insert("", "end", values=transaction)
 
+        def on_tree_select(event):
+            selected_item = tree.focus()  
+            if selected_item:
+                transaction_id = selected_item  
+                self.edit_transaction(transaction_id)
 
-            edit_label = create_label_with_binding(transaction, "Редактировать ", edit_transaction, fg_color="black", bg_color="White")  
-            delete_label = create_label_with_binding(transaction, f"Удалить {transaction[0]}", delete_transaction, fg_color="black", bg_color="White")  
-
-            edit_label.place(relx=0.85, y=offset_y + index * (screen_height * 0.0185))  
-            delete_label.place(relx=0.85, x=100, y=offset_y + index * (screen_height * 0.0185))  
+        tree.bind("<ButtonRelease-1>", on_tree_select)
 
         self.apply_row_colors(tree)
         tree.tag_configure("evenrow", background="#f0f0f0")
         tree.tag_configure("oddrow", background="#ffffff")
+
+
+    def edit_transaction(self,transaction_id):
+
+        result = self.controller_root.submit_update_id_transaction(transaction_id)
+
+        print(result)
 
 
     def on_card_click(self, card_id):

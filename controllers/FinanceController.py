@@ -120,6 +120,11 @@ class FinanceController:
         self.view.personal_transaction_card(result)
 
 
+    def submit_update_id_transaction(self,id_tr):
+        result = self.model.select_info_from_id_transaction(id_tr)
+        return result
+
+
     def update_card_name_currency(self):
         result = self.model.select_name_currency_card(self.actual_id)
         return result
@@ -157,7 +162,6 @@ class FinanceController:
     def update_transaction(self):
         self.transaction = self.model.select_transaction()
         return self.transaction
-
 
 
 
