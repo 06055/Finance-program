@@ -586,6 +586,7 @@ class FinanceView(Tk):
         self.load_icons('window_transaction', self.controller_root.title_icons)
 
 
+
     def window_transaction(self):
         self.creater_window()
 
@@ -598,7 +599,7 @@ class FinanceView(Tk):
         vsb = ttk.Scrollbar(self.table_frame, orient="vertical")
         vsb.pack(side="right", fill="y")
 
-        columns = ('ID',"Название транзакции", "Категория", "Подкатегория", "Тип транзакции", "Сумма", "Тип валюты", "Карта", "Дата транзакции","Редактирование/Удаление")
+        columns = ('ID', "Название транзакции", "Категория", "Подкатегория", "Тип транзакции", "Сумма", "Тип валюты", "Карта", "Дата транзакции", "Редактирование/Удаление")
 
         tree = ttk.Treeview(self.table_frame, columns=columns, show="headings", yscrollcommand=vsb.set)
         tree.pack(fill="both", expand=True)
@@ -610,16 +611,39 @@ class FinanceView(Tk):
 
         transactions = self.controller_root.update_transaction()
 
+        def edit_transaction(transaction_id):
+            print(f"Редактирование транзакции с ID: {transaction_id}")
+
+        def delete_transaction(transaction_id):
+            print(f"Удаление транзакции с ID: {transaction_id}")
+
+        screen_width = self.winfo_screenwidth()  
+        screen_height = self.winfo_screenheight()  
+
+        offset_x = screen_width * 1  
+        offset_y = 99
+
+        def create_label_with_binding(transaction, label_text, command, fg_color, bg_color):
+
+            label = Label(self, text=label_text, fg=fg_color, bg=bg_color, cursor="hand2")
+            label.bind("<Button-1>", lambda e: command(transaction[0]))  
+            return label
+
         for index, transaction in enumerate(transactions):
             background_tag = "evenrow" if index % 2 == 0 else "oddrow"
-            tree.insert("", "end", values=transaction, tags=(background_tag))
-            
+
+            tree.insert("", "end", values=transaction)
+
+
+            edit_label = create_label_with_binding(transaction, "Редактировать ", edit_transaction, fg_color="black", bg_color="White")  
+            delete_label = create_label_with_binding(transaction, f"Удалить {transaction[0]}", delete_transaction, fg_color="black", bg_color="White")  
+
+            edit_label.place(relx=0.85, y=offset_y + index * (screen_height * 0.0185))  
+            delete_label.place(relx=0.85, x=100, y=offset_y + index * (screen_height * 0.0185))  
+
         self.apply_row_colors(tree)
         tree.tag_configure("evenrow", background="#f0f0f0")
         tree.tag_configure("oddrow", background="#ffffff")
-
-
-
 
 
     def on_card_click(self, card_id):
@@ -847,6 +871,7 @@ class FinanceView(Tk):
             self.tree.insert("", "end", values=transaction, tags=(background_tag))
 
 
+
     def window_dollars(self):
         self.creater_window()
         self.container_frame = Frame(self, height=50, bg="#D3D3D3")
@@ -922,49 +947,44 @@ class FinanceView(Tk):
             self.tree.item(item, text=text.replace(old_symbol, new_symbol))
 
 
-    def change_counteragents(self, counterparty_id):
-        self.create_middle_window() 
-        """
-        Настроить вывод в 3 столбца
-        Так же удаление контрагента
-        """
-
-        counterparty = next((item for item in self.controller_root.update_counterparty_list() if item[0] == counterparty_id), None)
-        counterparty_name = counterparty[1] if counterparty else "Не найден"
+    # def change_counteragents(self, counterparty_id):
+    #     self.create_middle_window() 
+    #     counterparty = next((item for item in self.controller_root.update_counterparty_list() if item[0] == counterparty_id), None)
+    #     counterparty_name = counterparty[1] if counterparty else "Не найден"
         
-        list_category = self.controller_root.update_category_list()
+    #     list_category = self.controller_root.update_category_list()
 
-        label_counterparty = Label(self.new_window, text=f"Контрагент: {counterparty_name}", font=("Arial", 12, "bold"))
-        label_counterparty.grid(row=0, column=0, columnspan=3, pady=10, sticky="nsew")  
+    #     label_counterparty = Label(self.new_window, text=f"Контрагент: {counterparty_name}", font=("Arial", 12, "bold"))
+    #     label_counterparty.grid(row=0, column=0, columnspan=3, pady=10, sticky="nsew")  
 
-        main_frame = Frame(self.new_window)
-        main_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
+    #     main_frame = Frame(self.new_window)
+    #     main_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
 
-        card_in_row = 3  
-        for i in range(card_in_row):
-            main_frame.grid_columnconfigure(i, weight=1, uniform="equal") 
+    #     card_in_row = 3  
+    #     for i in range(card_in_row):
+    #         main_frame.grid_columnconfigure(i, weight=1, uniform="equal") 
 
-        row_counter = 0  
-        col_counter = 0  
+    #     row_counter = 0  
+    #     col_counter = 0  
 
-        for category in list_category:
-            category_id, category_name, parent_id = category
-            if parent_id == counterparty_id:
+    #     for category in list_category:
+    #         category_id, category_name, parent_id = category
+    #         if parent_id == counterparty_id:
 
-                label_category = Label(main_frame, text=f"{category_name}", font=("Arial", 10))
-                label_category.grid(row=row_counter, column=col_counter, padx=10, pady=5, sticky="nsew") 
+    #             label_category = Label(main_frame, text=f"{category_name}", font=("Arial", 10))
+    #             label_category.grid(row=row_counter, column=col_counter, padx=10, pady=5, sticky="nsew") 
 
-                button_remove = Button(main_frame, text="❌", command=lambda cid=category_id: self.remove_category(cid))
-                button_remove.grid(row=row_counter, column=col_counter + 1, padx=5, pady=5, sticky="nsew")  
+    #             button_remove = Button(main_frame, text="❌", command=lambda cid=category_id: self.remove_category(cid))
+    #             button_remove.grid(row=row_counter, column=col_counter + 1, padx=5, pady=5, sticky="nsew")  
 
-                empty_label = Label(main_frame, text="", font=("Arial", 10))
-                empty_label.grid(row=row_counter, column=col_counter + 2, padx=5, pady=5, sticky="nsew") 
+    #             empty_label = Label(main_frame, text="", font=("Arial", 10))
+    #             empty_label.grid(row=row_counter, column=col_counter + 2, padx=5, pady=5, sticky="nsew") 
 
-                col_counter += 3  
+    #             col_counter += 3  
 
-                if col_counter >= card_in_row * 3:
-                    col_counter = 0
-                    row_counter += 1
+    #             if col_counter >= card_in_row * 3:
+    #                 col_counter = 0
+    #                 row_counter += 1
 
 
     def remove_category(self, category_id):
@@ -992,12 +1012,5 @@ class FinanceView(Tk):
 1.ОТРЕДАКТИРОВАТЬ ФОТОГРАФИЮ С КОНТРАГЕНТАМИ
 
 """
-
-
-
-
-
-
-
 
 
