@@ -620,7 +620,7 @@ class FinanceView(Tk):
             selected_item = tree.focus()  
             if selected_item:
                 transaction_id = selected_item  
-                self.edit_transaction(transaction_id)
+                self.choice_edit_delete(transaction_id)
 
         tree.bind("<ButtonRelease-1>", on_tree_select)
 
@@ -629,11 +629,145 @@ class FinanceView(Tk):
         tree.tag_configure("oddrow", background="#ffffff")
 
 
-    def edit_transaction(self,transaction_id):
+    def choice_edit_delete(self,transaction_id):
+        self.create_middle_window()
 
         result = self.controller_root.submit_update_id_transaction(transaction_id)
 
-        print(result)
+
+        counterparty_list = self.controller_root.update_counterparty_list()
+        category_list = self.controller_root.update_category_list()
+        subcategory_list = self.controller_root.update_subcategory_list()
+
+        option_typetransaction = ['Расход', 'Доход']
+        option_cardchoise = self.controller_root.update_card_list()
+        option_counterparty = [name for _, name in counterparty_list]
+
+        def update_categories(*args):  
+            selected_counterparty_name = self.selected_counterparty.get()
+            selected_counterparty_id = None
+            
+            for counterparty in counterparty_list:
+                if counterparty[1] == selected_counterparty_name:
+                    selected_counterparty_id = counterparty[0]
+                    break
+            filtered_categories = [name for _, name, counterparty_id in category_list if counterparty_id == selected_counterparty_id]
+            self.selected_categires.set("Выбор категории")  
+            self.namecategorie_menu['menu'].delete(0, 'end')  
+            for category in filtered_categories:
+                self.namecategorie_menu['menu'].add_command(label=category, command=tk._setit(self.selected_categires, category))
+
+        self.label_counterparty = ttk.Label(self.new_window, width=30, text='Выбор контрагента', font=("Arial", 16))
+        self.label_counterparty.grid(row=1, column=0, pady=0, padx=20, sticky="n")
+        self.selected_counterparty = tk.StringVar(value=result[1])
+        self.counterparty_menu = ttk.OptionMenu(self.new_window, self.selected_counterparty, None, *option_counterparty)
+        self.counterparty_menu.configure(style="Custom.TMenubutton")
+        self.counterparty_menu.config(width=25)
+        self.counterparty_menu.grid(row=2,column=0,padx=20,pady=0,sticky="w")
+
+        self.selected_counterparty.trace("w", update_categories)
+
+        def update_subcategories(*args):
+            selected_categires_name = self.selected_categires.get()
+            print(selected_categires_name)
+            selected_categires_id = None
+            
+            for categorie in category_list:
+                if categorie[1] == selected_categires_name:
+                    selected_categires_id = categorie[0]
+                    break
+            filtered_subcategories = [name for _, name, categorie_id in subcategory_list if categorie_id == selected_categires_id]
+            self.selected_subcategires.set("Выбор категории")  
+            self.namesubcategorie_menu['menu'].delete(0, 'end')  
+            for subcategories in filtered_subcategories:
+                self.namesubcategorie_menu['menu'].add_command(label=subcategories, command=tk._setit(self.selected_subcategires, subcategories))
+
+        self.label_namecategorie = ttk.Label(self.new_window, width=30, text='Название категории', font=("Arial", 16))
+        self.label_namecategorie.grid(row=3, column=0, pady=0, padx=20, sticky="n")
+        self.selected_categires = tk.StringVar(value=result[2])
+        self.namecategorie_menu = ttk.OptionMenu(self.new_window, self.selected_categires, None)
+        self.namecategorie_menu.configure(style="Custom.TMenubutton")
+        self.namecategorie_menu.config(width=25)
+        self.namecategorie_menu.grid(row=4, column=0, padx=20, pady=0, sticky="w")
+
+        self.selected_categires.trace("w", update_subcategories)
+
+        self.label_namesubcategorie = ttk.Label(self.new_window, width=30, text='Название подкатегории', font=("Arial", 16))
+        self.label_namesubcategorie.grid(row=5, column=0, pady=0, padx=20, sticky="n")
+        self.selected_subcategires = tk.StringVar(value=result[3])
+        self.namesubcategorie_menu = ttk.OptionMenu(self.new_window, self.selected_subcategires, None)
+        self.namesubcategorie_menu.configure(style="Custom.TMenubutton")
+        self.namesubcategorie_menu.config(width=25)
+        self.namesubcategorie_menu.grid(row=6, column=0, padx=20, pady=0, sticky="w")
+
+        self.label_typetransaction = ttk.Label(self.new_window, width=30, text='Тип транзакции', font=("Arial", 16))
+        self.label_typetransaction.grid(row=7, column=0, pady=0, padx=20, sticky="n")
+        self.selected_type_transaction = tk.StringVar(value=result[4])
+        self.type_transaction_menu = ttk.OptionMenu(self.new_window, self.selected_type_transaction, None, *option_typetransaction)
+        self.type_transaction_menu.configure(style="Custom.TMenubutton")
+        self.type_transaction_menu.config(width=25)
+        self.type_transaction_menu.grid(row=8, column=0, padx=20, pady=0, sticky="w")
+
+        self.label_sumstransaction = ttk.Label(self.new_window, width=30, text='Сумма транзакции', font=("Arial", 16))
+        self.label_sumstransaction.grid(row=9, column=0, pady=0, padx=20, sticky="n")
+        self.sumstransaction_entry = ttk.Entry(self.new_window, width=27, font=("Arial", 13))
+        self.sumstransaction_entry.insert(0,result[5])
+        self.sumstransaction_entry.grid(row=10, column=0, padx=20, pady=5, sticky="w")
+
+        self.currency_label = ttk.Label(self.new_window, text="", font=("Arial", 13))
+        self.currency_label.grid(row=10, column=0, pady=10, padx=(225, 0), sticky="w")
+
+        def update_currency(*args):
+            selected_card = self.selected_choisecard.get()
+
+            self.currency = self.controller_root.update_card_currency(selected_card)
+            if self.currency:
+                self.currency_label.config(text=f" {self.currency}")
+            else:
+                self.currency_label.config(text="")
+
+        self.label_choisecard = ttk.Label(self.new_window, width=30, text='Выбор карты', font=("Arial", 16))
+        self.label_choisecard.grid(row=11, column=0, pady=0, padx=20, sticky="n")
+        self.selected_choisecard = tk.StringVar(value=result[7])
+        self.choisecard_menu = ttk.OptionMenu(self.new_window, self.selected_choisecard, None, *option_cardchoise)
+        self.choisecard_menu.configure(style="Custom.TMenubutton")
+        self.choisecard_menu.config(width=25)
+        self.choisecard_menu.grid(row=12, column=0, padx=20, pady=0, sticky="w")
+
+
+        self.selected_choisecard.trace("w", update_currency)
+        print(result[8])
+        self.calendar = Calendar(self.new_window, selectmode='day', year=datetime.now().year, month=datetime.now().month, day=datetime.now().day)
+        self.calendar.grid(row=2, column=1, rowspan=6, pady=0, padx=0, sticky="n")
+
+
+        self.buttom_edit = Button(self.new_window, text='Редактировать')
+        self.buttom_edit.config(command=self.controller_root.submit_edit_transaction)
+        self.buttom_edit.grid(row=13, column=0, padx=20, pady=0, sticky="w")
+
+        self.buttom_edit = Button(self.new_window, text='Удалить')
+        self.buttom_edit.config(command='')
+        self.buttom_edit.grid(row=13, column=1, padx=20, pady=0, sticky="w")
+
+
+
+
+
+    def edit_transaction(self):
+        counteragent = self.counteragent_entry.get()
+        category = self.category_entry.get()
+        subcategory = self.subcategory_entry.get()
+        income_or_expense = self.income_or_expense_entry.get()
+        count_money = self.count_money_entry.get()
+        name_card = self.name_card_entry.get()
+        type_money = self.type_money_entry.get()
+        data = self.data_entry.get()
+        
+
+
+
+
+        return counteragent,category,subcategory,income_or_expense,count_money,name_card,type_money,data
 
 
     def on_card_click(self, card_id):

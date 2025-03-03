@@ -123,6 +123,11 @@ class FinanceController:
     def submit_update_id_transaction(self,id_tr):
         result = self.model.select_info_from_id_transaction(id_tr)
         return result
+    
+
+    def submit_edit_transaction(self):
+        result = self.view.edit_transaction()
+        print(result)
 
 
     def update_card_name_currency(self):
