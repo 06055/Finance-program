@@ -312,3 +312,52 @@ class FinanceModel:
         cursor.close()
         dbc.close()
         return result[0]
+    
+
+    @staticmethod
+    def update_transaction_info(id_tr,counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date, selected_before_card):
+        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        amount = float(amount)
+        if type_transaction.lower() == "расход":
+            amount = -abs(amount)
+            if selected_before_card != choisecard_menu:
+                onlyamount = abs(amount)
+                _SQL = """UPDATE pocket SET count_money = count_money + %s WHERE name = %s"""
+                cursor.execute(_SQL, (onlyamount, selected_before_card))
+                dbc.commit()
+        else:
+            amount = abs(amount)
+            if selected_before_card != choisecard_menu:
+                _SQL = """UPDATE pocket SET count_money = count_money - %s WHERE name = %s"""
+                cursor.execute(_SQL, (amount, selected_before_card))
+                dbc.commit()
+
+
+        _SQL = """UPDATE transactions 
+                SET counteragent = %s,
+                categoria = %s, 
+                subcategoria = %s, 
+                type_transaction = %s, 
+                count = %s,
+                currency = %s, 
+                card = %s, 
+                data = %s 
+                WHERE id = %s"""
+
+
+        cursor.execute(_SQL, (counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date, id_tr))
+        dbc.commit()
+
+        
+
+
+        _SQL = """UPDATE pocket SET count_money = count_money + %s WHERE name = %s"""
+        cursor.execute(_SQL, (amount, choisecard_menu))
+        dbc.commit()
+
+        cursor.close()
+        dbc.close()
+    

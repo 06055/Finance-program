@@ -547,7 +547,6 @@ class FinanceView(Tk):
         self.state("zoomed")
 
 
-
     def apply_row_colors(self, tree):
         for index, item in enumerate(tree.get_children()):
             tag = "evenrow" if index % 2 == 0 else "oddrow"
@@ -621,6 +620,7 @@ class FinanceView(Tk):
             if selected_item:
                 transaction_id = selected_item  
                 self.choice_edit_delete(transaction_id)
+                self.who_window_transaction = 'main'
 
         tree.bind("<ButtonRelease-1>", on_tree_select)
 
@@ -634,7 +634,6 @@ class FinanceView(Tk):
 
         result = self.controller_root.submit_update_id_transaction(transaction_id)
 
-
         counterparty_list = self.controller_root.update_counterparty_list()
         category_list = self.controller_root.update_category_list()
         subcategory_list = self.controller_root.update_subcategory_list()
@@ -642,6 +641,7 @@ class FinanceView(Tk):
         option_typetransaction = ['Расход', 'Доход']
         option_cardchoise = self.controller_root.update_card_list()
         option_counterparty = [name for _, name in counterparty_list]
+        self.selected_before_card = result[7]
 
         def update_categories(*args):  
             selected_counterparty_name = self.selected_counterparty.get()
@@ -669,7 +669,6 @@ class FinanceView(Tk):
 
         def update_subcategories(*args):
             selected_categires_name = self.selected_categires.get()
-            print(selected_categires_name)
             selected_categires_id = None
             
             for categorie in category_list:
@@ -733,13 +732,12 @@ class FinanceView(Tk):
         self.choisecard_menu.configure(style="Custom.TMenubutton")
         self.choisecard_menu.config(width=25)
         self.choisecard_menu.grid(row=12, column=0, padx=20, pady=0, sticky="w")
+    
+        self.selected_choisecard.trace_add("write", update_currency)
+        update_currency()
 
-
-        self.selected_choisecard.trace("w", update_currency)
-        print(result[8])
         self.calendar = Calendar(self.new_window, selectmode='day', year=datetime.now().year, month=datetime.now().month, day=datetime.now().day)
         self.calendar.grid(row=2, column=1, rowspan=6, pady=0, padx=0, sticky="n")
-
 
         self.buttom_edit = Button(self.new_window, text='Редактировать')
         self.buttom_edit.config(command=self.controller_root.submit_edit_transaction)
@@ -750,24 +748,16 @@ class FinanceView(Tk):
         self.buttom_edit.grid(row=13, column=1, padx=20, pady=0, sticky="w")
 
 
-
-
-
     def edit_transaction(self):
-        counteragent = self.counteragent_entry.get()
-        category = self.category_entry.get()
-        subcategory = self.subcategory_entry.get()
-        income_or_expense = self.income_or_expense_entry.get()
-        count_money = self.count_money_entry.get()
-        name_card = self.name_card_entry.get()
-        type_money = self.type_money_entry.get()
-        data = self.data_entry.get()
-        
-
-
-
-
-        return counteragent,category,subcategory,income_or_expense,count_money,name_card,type_money,data
+        counteragent = self.selected_counterparty.get()
+        category = self.selected_categires.get()
+        subcategory = self.selected_subcategires.get()
+        type_transaction = self.selected_type_transaction.get()  
+        amount = self.sumstransaction_entry.get()
+        choisecard_menu = self.selected_choisecard.get()  
+        currency = self.currency
+        date = self.selected_date()
+        return counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date, self.who_window_transaction, self.selected_before_card
 
 
     def on_card_click(self, card_id):
@@ -830,7 +820,8 @@ class FinanceView(Tk):
                 data_made_str = self.format_date(data_made)
                 canvas.create_text(20, 75, text=data_made_str, fill=text_color, font=("Arial", 10), anchor="w")
             if count_money:
-                formatted_balance = self.format_balance(count_money)
+                if count_money != 0:
+                    formatted_balance = self.format_balance(count_money)
                 canvas.create_text(330, 160, text=f"{formatted_balance} {type_currency}", fill=text_color, font=("Arial", 10), anchor="e")
 
             canvas.bind("<Button-1>", lambda event, card_frame=card_frame: self.on_card_click(card_frame.card_id))
@@ -950,8 +941,6 @@ class FinanceView(Tk):
         self.table_frame = Frame(self.new_window)
         self.table_frame.pack(fill="both", expand=False)
         card_name_currency = self.controller_root.update_card_name_currency()
-
-
         self.add_personal_transaction = Button(
             self.container_frame,
             text="+",
@@ -962,7 +951,7 @@ class FinanceView(Tk):
         vsb = ttk.Scrollbar(self.new_window, orient="vertical")
         vsb.pack(side="right", fill="y")
 
-        columns = ('ID',"Название транзакции", "Категория", "Подкатегория", "Тип транзакции", "Сумма", "Тип валюты", "Карта", "Дата транзакции","Редактирование/Удаление")
+        columns = ("Название транзакции", "Категория", "Подкатегория", "Тип транзакции", "Сумма", "Тип валюты", "Карта", "Дата транзакции")
 
         self.tree = ttk.Treeview(
             self.new_window,
@@ -979,6 +968,17 @@ class FinanceView(Tk):
 
         self.fill_treeview(tr_card)
 
+
+        def on_tree_select(event):
+            selected_item = self.tree.focus()  
+            if selected_item:
+                transaction_id = selected_item  
+                self.choice_edit_delete(transaction_id)
+                self.who_window_transaction = 'personal'
+
+        self.tree.bind("<ButtonRelease-1>", on_tree_select)
+
+
         self.apply_row_colors(self.tree)
         self.tree.tag_configure("evenrow", background="#f2f2f2")
         self.tree.tag_configure("oddrow", background="#ffffff")
@@ -992,8 +992,7 @@ class FinanceView(Tk):
 
         for index, transaction in enumerate(tr_card):
             background_tag = "evenrow" if index % 2 == 0 else "oddrow"
-            self.tree.insert("", "end", values=transaction, tags=(background_tag))
-
+            self.tree.insert("", "end", values=transaction[1:], tags=(background_tag), iid=transaction[0])
 
 
     def window_dollars(self):
@@ -1012,14 +1011,7 @@ class FinanceView(Tk):
         self.creater_window()
         self.container_frame = Frame(self, height=50, bg="#D3D3D3")
         self.container_frame.pack(fill="x")
-
-        self.buttom_categories = Button(self, text="Добавить категорию", command=self.window_add_category)
-        self.buttom_categories.pack()
-
-        self.buttom_subcategories = Button(self, text="Добавить подкатегорию", command=self.window_add_subcategory)
-        self.buttom_subcategories.pack()
-
-        self.image_change = ImageTk.PhotoImage(file=r'C:\Finans_programm\images\image_buttom\change.png')
+        # self.image_change = ImageTk.PhotoImage(file=r'C:\Finans_programm\images\image_buttom\change.png')
 
         list_counterparty = self.controller_root.update_counterparty_list()
         list_category = self.controller_root.update_category_list()
@@ -1041,6 +1033,12 @@ class FinanceView(Tk):
 
         self.tree = ttk.Treeview(self)
         self.tree.pack(fill="both", expand=True, padx=10, pady=5)
+
+        self.buttom_categories = Button(self.tree, text="Добавить категорию", command=self.window_add_category)
+        self.buttom_categories.grid(row=0,column=3,padx=0,pady=0,sticky="e")
+
+        self.buttom_subcategories = Button(self.tree, text="Добавить подкатегорию", command=self.window_add_subcategory)
+        self.buttom_subcategories.grid(row=0,column=4,padx=0,pady=0,sticky="e")
 
         self.nodes = {}
 
@@ -1119,18 +1117,18 @@ class FinanceView(Tk):
 
 """
 
-1.СДЕЛАТЬ новый дизайн добавление транзакций(ГЛАВНОЕ ОКНО)
-2.СДЕЛАТЬ новый дизайн добавление транзакций(ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ)
+✓1.СДЕЛАТЬ новый дизайн добавление транзакций(ГЛАВНОЕ ОКНО)
+✓2.СДЕЛАТЬ новый дизайн добавление транзакций(ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ)
 3.СДЕЛАТЬ нормальное расположение кнопок в КОНТРАГЕНТАХ
 4.СДЕЛАТЬ ВЫВОД КОНТРАГЕНТОВ(КАТЕГОРИЙ И ПОД КАТЕГОРИЙ В 4 КОЛОНКИ)
 5.СДЕЛАТЬ УДАЛЕНИЕ ТРАНЗАКЦИЙ(ГЛАВНОЕ ОКНО)
-6.СДЕЛАТЬ РЕДАКТИРОВАНИЕ ТРАНЗАКЦИЙ(ГЛАВНОЕ ОКНО)
+✓6.СДЕЛАТЬ РЕДАКТИРОВАНИЕ ТРАНЗАКЦИЙ(ГЛАВНОЕ ОКНО)
 ✓7.СДЕЛАТЬ ОБНОВЛЕНИЕ ПОСЛЕ КАЖДОЙ ДОБАВЛЕННОЙ ТРАНЗАКЦИИ(ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ)
 8.СДЕЛАТЬ НОРМАЛЬНУЮ КНОПКУ ДОБАВЛЕНИЯ ТРАНЗАКЦИЙ В(ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ)
 
 
 ✓1.ПОФИКСИТЬ ПРОБЛЕМУ С ОТКРЫТИЕМ ОКНА(ДОБАВЛЕНИЕ ТРАНЗАКЦИЙ)
-✓2.ПОФИКСИТЬ ВЫВОД ТРАНЗАКЦИЙ В (ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ)
+2.ПОФИКСИТЬ ВЫВОД ТРАНЗАКЦИЙ В (ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ)
 ✓3.ПОФИКСИТЬ БЕЛЫЙ ЭКРАН ПОСЛЕ ДОБАВЛЕНИЯ (ПЕРСОНАЛЬНОЙ ТРАНЗАКЦИИ)
 
 1.ОТРЕДАКТИРОВАТЬ ФОТОГРАФИЮ С КОНТРАГЕНТАМИ
@@ -1138,3 +1136,5 @@ class FinanceView(Tk):
 """
 
 
+
+""""""

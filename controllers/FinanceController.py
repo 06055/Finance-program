@@ -1,4 +1,3 @@
-    
 class FinanceController:
     def __init__(self, model, view):
         self.model = model
@@ -78,6 +77,7 @@ class FinanceController:
         self.view.new_window.destroy()
         self.view.refresh_cards()
 
+
     def add_transaction(self):
         counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date = self.view.get_transaction_information()
         self.model.add_transaction(counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date)
@@ -121,13 +121,28 @@ class FinanceController:
 
 
     def submit_update_id_transaction(self,id_tr):
+        self.id_tr = id_tr
         result = self.model.select_info_from_id_transaction(id_tr)
         return result
-    
+
 
     def submit_edit_transaction(self):
         result = self.view.edit_transaction()
-        print(result)
+        
+        result = list(result)
+        if result[3] == 'Доход':
+            result[4] = abs(float(result[4]))
+        else:
+            result[4] = -abs(float(result[4]))
+        counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date, which_window_transaction, selected_before_card = result
+
+        self.model.update_transaction_info(self.id_tr,counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date, selected_before_card)
+        if which_window_transaction == 'main':
+            self.view.new_window.destroy()
+            self.view.refresh_transaction()
+        else:
+            result = self.model.select_transaction_personal_id(self.actual_id)
+            self.view.refresh_personal_transaction(result)
 
 
     def update_card_name_currency(self):
