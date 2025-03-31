@@ -108,90 +108,84 @@ class FinanceView(Tk):
         self.images = []
         self.photo_icons = []
         for filename in os.listdir(images_folder):
-                if opened_window == 'window_transaction':
-                    if "bookWhite" in filename or "Black" in filename or 'xplus' in filename:
-                        if "bookBlack" not in filename:
-                            image_path = os.path.join(images_folder, filename)
-                            self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
-                            self.canvas.pack(side='left')
-                            image = Image.open(image_path)
-                            photo_icon = ImageTk.PhotoImage(image)
-                            self.images.append(image)  
-                            self.photo_icons.append(photo_icon)  
-                            self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
-                            if "bookWhite" not in filename:
-                                if 'xplus' in filename:
-                                    self.canvas.bind("<Button-1>", lambda event, path=image_path: self.transaction_on_plus_click())
-                                elif on_click_callback != None:
-                                    self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
+            if opened_window == 'window_transaction':
+                if "bookWhite" in filename or "Black" in filename or 'xplus' in filename:
+                    if "bookBlack" not in filename:
+                        image_path = os.path.join(images_folder, filename)
+                        self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
+                        self.canvas.pack(side='left')
+                        image = Image.open(image_path)
+                        photo_icon = ImageTk.PhotoImage(image)
+                        self.images.append(image)  
+                        self.photo_icons.append(photo_icon)  
+                        self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
+                        if "bookWhite" not in filename:
+                            if 'xplus' in filename:
+                                self.canvas.bind("<Button-1>", lambda event, path=image_path: self.transaction_on_plus_click())
+                            elif on_click_callback != None:
+                                self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
 
-                elif opened_window == 'window_cards':
-                    if "cardWhite" in filename or "Black" in filename or 'xplus' in filename:
-                        if "cardBlack" not in filename:
-                            image_path = os.path.join(images_folder, filename)
-                            self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
-                            self.canvas.pack(side='left')
-                            image = Image.open(image_path)
-                            photo_icon = ImageTk.PhotoImage(image)
-                            self.images.append(image)  
-                            self.photo_icons.append(photo_icon)  
-                            self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
-                            if "cardWhite" not in filename:
-                                if 'xplus' in filename:
-                                    self.canvas.bind("<Button-1>", lambda event, path=image_path: self.card_on_plus_click())
-                                elif on_click_callback is not None:
-                                    self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
+            elif opened_window == 'window_cards':
+                if "cardWhite" in filename or "Black" in filename or 'xplus' in filename:
+                    if "cardBlack" not in filename:
+                        image_path = os.path.join(images_folder, filename)
+                        self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
+                        self.canvas.pack(side='left')
+                        image = Image.open(image_path)
+                        photo_icon = ImageTk.PhotoImage(image)
+                        self.images.append(image)  
+                        self.photo_icons.append(photo_icon)  
+                        self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
+                        if "cardWhite" not in filename:
+                            if 'xplus' in filename:
+                                self.canvas.bind("<Button-1>", lambda event, path=image_path: self.card_on_plus_click())
+                            elif on_click_callback is not None:
+                                self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
 
-                elif opened_window == 'window_dollar':
-                    if "dollarWhite" in filename or "Black" in filename or 'xplus' in filename:
-                        if "dollarBlack" not in filename:
-                            image_path = os.path.join(images_folder, filename)
-                            self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
-                            self.canvas.pack(side='left')
-                            image = Image.open(image_path)
-                            photo_icon = ImageTk.PhotoImage(image)
-                            self.images.append(image)  
-                            self.photo_icons.append(photo_icon)  
-                            self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
-                            if "dollarWhite" not in filename:
-                                if 'xplus' in filename:
-                                    self.canvas.bind("<Button-1>", lambda event, path=image_path: self.window_dollar_on_plus_click())
-                                elif on_click_callback != None:
-                                    self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
+            elif opened_window == 'window_dollar':
+                if "dollarWhite" in filename or "Black" in filename or 'xplus' in filename:
+                    if "dollarBlack" not in filename:
+                        image_path = os.path.join(images_folder, filename)
+                        self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
+                        self.canvas.pack(side='left')
+                        image = Image.open(image_path)
+                        photo_icon = ImageTk.PhotoImage(image)
+                        self.images.append(image)  
+                        self.photo_icons.append(photo_icon)  
+                        self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
+                        if "dollarWhite" not in filename:
+                            if 'xplus' in filename:
+                                self.canvas.bind("<Button-1>", lambda event, path=image_path: self.window_dollar_on_plus_click())
+                            elif on_click_callback != None:
+                                self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
 
-                elif opened_window == 'window_statistic':
-                    if "statisticWhite" in filename or "Black" in filename or 'xplus' in filename:
-                        if "statisticBlack" not in filename:
-                            image_path = os.path.join(images_folder, filename)
-                            self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
-                            self.canvas.pack(side='left')
-                            image = Image.open(image_path)
-                            photo_icon = ImageTk.PhotoImage(image)
-                            self.images.append(image)  
-                            self.photo_icons.append(photo_icon)  
-                            self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
-                            if "statisticWhite" not in filename:
-                                if 'xplus' in filename:
-                                    self.canvas.bind("<Button-1>", lambda event, path=image_path: self.statistic_on_plus_click())
-                                elif on_click_callback != None:
-                                    self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
+            elif opened_window == 'window_statistic':
+                if "statisticWhite" in filename or "Black" in filename and 'xplus' not in filename:
+                    if "statisticBlack" not in filename:
+                        image_path = os.path.join(images_folder, filename)
+                        self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
+                        self.canvas.pack(side='left')
+                        image = Image.open(image_path)
+                        photo_icon = ImageTk.PhotoImage(image)
+                        self.images.append(image)  
+                        self.photo_icons.append(photo_icon)  
+                        self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
+                        if "statisticWhite" not in filename:
+                            self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
 
-                elif opened_window == 'window_ucounterparties':
-                    if "ucounterpartiesWhite" in filename or "Black" in filename or 'xplus' in filename:
-                        if "ucounterpartiesBlack" not in filename:
-                            image_path = os.path.join(images_folder, filename)
-                            self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
-                            self.canvas.pack(side='left')
-                            image = Image.open(image_path)
-                            photo_icon = ImageTk.PhotoImage(image)
-                            self.images.append(image)  
-                            self.photo_icons.append(photo_icon)  
-                            self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
-                            if "ucounterpartiesWhite" not in filename:
-                                if 'xplus' in filename:
-                                    self.canvas.bind("<Button-1>", lambda event, path=image_path: self.ucounterparties_on_plus_click())
-                                elif on_click_callback != None:
-                                    self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
+            elif opened_window == 'window_ucounterparties':
+                if ("ucounterpartiesWhite" in filename or "Black" in filename) and 'xplus' not in filename:
+                    if "ucounterpartiesBlack" not in filename:
+                        image_path = os.path.join(images_folder, filename)
+                        self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
+                        self.canvas.pack(side='left')
+                        image = Image.open(image_path)
+                        photo_icon = ImageTk.PhotoImage(image)
+                        self.images.append(image)  
+                        self.photo_icons.append(photo_icon)  
+                        self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
+                        if "ucounterpartiesWhite" not in filename and on_click_callback is not None:
+                            self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
 
 
     def create_middle_window(self):
@@ -797,8 +791,7 @@ class FinanceView(Tk):
 
             canvas = Canvas(card_frame, width=350, height=180, bg=bg_color, bd=0, highlightthickness=0)
             canvas.place(relx=0, rely=0, anchor="nw")
-            canvas = Canvas(card_frame, width=350, height=180, bg=bg_color, bd=0, highlightthickness=0)
-            canvas.place(relx=0, rely=0, anchor="nw")
+
 
             text_color = "white"
 
@@ -1011,62 +1004,148 @@ class FinanceView(Tk):
         self.creater_window()
         self.container_frame = Frame(self, height=50, bg="#D3D3D3")
         self.container_frame.pack(fill="x")
-        # self.image_change = ImageTk.PhotoImage(file=r'C:\Finans_programm\images\image_buttom\change.png')
 
         list_counterparty = self.controller_root.update_counterparty_list()
         list_category = self.controller_root.update_category_list()
         list_subcategory = self.controller_root.update_subcategory_list()
+        
 
         categories_by_counterparty = {}
         for category in list_category:
-            counterparty_id = category[2]  
+            counterparty_id = category[2]
             if counterparty_id not in categories_by_counterparty:
                 categories_by_counterparty[counterparty_id] = []
             categories_by_counterparty[counterparty_id].append(category)
 
         subcategories_by_category = {}
         for subcategory in list_subcategory:
-            category_id = subcategory[2]  
+            category_id = subcategory[2]
             if category_id not in subcategories_by_category:
                 subcategories_by_category[category_id] = []
             subcategories_by_category[category_id].append(subcategory)
 
-        self.tree = ttk.Treeview(self)
-        self.tree.pack(fill="both", expand=True, padx=10, pady=5)
 
-        self.buttom_categories = Button(self.tree, text="Добавить категорию", command=self.window_add_category)
-        self.buttom_categories.grid(row=0,column=3,padx=0,pady=0,sticky="e")
+        self.tree_frame = Frame(self)
+        self.tree_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
-        self.buttom_subcategories = Button(self.tree, text="Добавить подкатегорию", command=self.window_add_subcategory)
-        self.buttom_subcategories.grid(row=0,column=4,padx=0,pady=0,sticky="e")
 
-        self.nodes = {}
+        self.tree_frame.grid_rowconfigure(0, weight=1)  
+        self.tree_frame.grid_columnconfigure(0, weight=1, uniform="columns")  
+        self.tree_frame.grid_columnconfigure(1, weight=1, uniform="columns") 
+        self.tree_frame.grid_columnconfigure(2, weight=2, uniform="columns")  
+
+        self.left_column = Frame(self.tree_frame)
+        self.left_column.grid(row=0, column=0, sticky="nsew")
+
+        self.right_column = Frame(self.tree_frame)
+        self.right_column.grid(row=0, column=1, sticky="nsew")
+
+        self.white_column = Frame(self.tree_frame, bg="white")
+        self.white_column.grid(row=0, column=2, sticky="nsew")
+
+        self.tree_left = ttk.Treeview(self.left_column)
+        self.tree_left.pack(fill="both", expand=True)
+
+        self.tree_right = ttk.Treeview(self.right_column)
+        self.tree_right.pack(fill="both", expand=True)
+
+        label = Label(self.white_column, bg="white")
+        label.pack(fill="both", expand=True)
+
+
+        left = True
 
         for counterparty_id, counterparty_name in list_counterparty:
-            counterparty_node = self.tree.insert("", "end", text=f"{counterparty_name} ▶", open=False)
-            self.nodes[counterparty_node] = {"type": "counterparty", "id": counterparty_id}
+            target_tree = self.tree_left if left else self.tree_right
+            left = not left
+            counterparty_node = target_tree.insert("", "end", text=f"{counterparty_name} ▶", values=counterparty_id, tags= "Контрагент", open=False)
 
             if counterparty_id in categories_by_counterparty:
                 for category in categories_by_counterparty[counterparty_id]:
                     category_id, category_name = category[0], category[1]
-                    category_node = self.tree.insert(counterparty_node, "end", text=f"{category_name} ▶", open=False)
-                    self.nodes[category_node] = {"type": "category", "id": category_id}
+                    category_node = target_tree.insert(counterparty_node, "end", text=f"{category_name} ▶", values=category_id, tags = "Категория", open=False)
 
                     if category_id in subcategories_by_category:
                         for subcategory in subcategories_by_category[category_id]:
                             subcategory_id, subcategory_name = subcategory[0], subcategory[1]
-                            subcategory_node = self.tree.insert(category_node, "end", text=subcategory_name, open=False)
-                            self.nodes[subcategory_node] = {"type": "subcategory", "id": subcategory_id}
-
-        self.tree.bind("<<TreeviewOpen>>", lambda event: self.toggle_arrow(event, "▶", "▼"))
-        self.tree.bind("<<TreeviewClose>>", lambda event: self.toggle_arrow(event, "▼", "▶"))
+                            subcategory_node = target_tree.insert(category_node, "end", text=subcategory_name, values=subcategory_id, tags = "Подкатегория", open=False)
 
 
-    def toggle_arrow(self, event, old_symbol, new_symbol):
-        item = self.tree.focus()
-        text = self.tree.item(item, "text")
+
+        self.tree_left.bind("<<TreeviewSelect>>", self.on_item_selected)
+        self.tree_left.bind("<<TreeviewOpen>>", lambda event: self.toggle_arrow(event, "▶", "▼", self.tree_left))
+        self.tree_left.bind("<<TreeviewClose>>", lambda event: self.toggle_arrow(event, "▼", "▶", self.tree_left))
+        self.tree_right.bind("<<TreeviewSelect>>", self.on_item_selected)
+        self.tree_right.bind("<<TreeviewOpen>>", lambda event: self.toggle_arrow(event, "▶", "▼", self.tree_right))
+        self.tree_right.bind("<<TreeviewClose>>", lambda event: self.toggle_arrow(event, "▼", "▶", self.tree_right))
+
+        
+    def on_item_selected(self, event):
+        tree = event.widget  
+        selected_items = tree.selection()  
+        if not selected_items:
+            return
+
+        selected_item = selected_items[0]  
+        item = tree.item(selected_item)  
+        item_text = item["text"]  
+        item_id = item["values"][0]
+        
+
+        for widget in self.white_column.winfo_children():
+            widget.destroy()
+
+        header_frame = tk.Frame(self.white_column, bg="white")
+        header_frame.pack(fill="x", padx=10, pady=5)
+
+        title_label = tk.Label(header_frame, text=f"Выбрано: {item_text}", font=("Arial", 14, "bold"), bg="white")
+        title_label.pack()
+
+        item_type = "Неизвестно"
+        related_data = []
+
+        if item_id:
+            item_type = item['tags'][0]
+
+
+            if item_type == "Контрагент":
+                related_data = self.controller_root.get_counterpart_info(item_id)
+            elif item_type == "Категория":
+                related_data = self.controller_root.get_subcategories_by_category(item_id)
+
+        type_label = tk.Label(header_frame, text=f"Тип: {item_type}", font=("Arial", 12), bg="white")
+        type_label.pack()
+
+        separator = tk.Frame(self.white_column, height=2, bg="gray")
+        separator.pack(fill="x", padx=5, pady=5)
+
+        bottom_frame = tk.Frame(self.white_column, bg="white")
+        bottom_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+        col1 = tk.Frame(bottom_frame, bg="white")
+        col2 = tk.Frame(bottom_frame, bg="white")
+
+        col1.pack(side="left", fill="both", expand=True)
+        col2.pack(side="left", fill="both", expand=True)
+
+        tk.Label(col1, font=("Arial", 12, "bold"), bg="white").pack()
+        tk.Label(col2, font=("Arial", 12, "bold"), bg="white").pack()
+
+        if related_data:
+            for i, data in enumerate(related_data):
+                target_col = col1 if i % 2 == 0 else col2
+                tk.Label(target_col, text=data[1], bg="white", font=("Arial", 12)).pack()
+        else:
+            tk.Label(col1, text="Нет данных", bg="white", font=("Arial", 12)).pack()
+
+
+    def toggle_arrow(self, event, old_symbol, new_symbol, tree):
+        item = tree.focus()
+        text = tree.item(item, "text")
         if old_symbol in text:
-            self.tree.item(item, text=text.replace(old_symbol, new_symbol))
+            tree.item(item, text=text.replace(old_symbol, new_symbol))
+
+
 
 
     # def change_counteragents(self, counterparty_id):
@@ -1137,4 +1216,13 @@ class FinanceView(Tk):
 
 
 
-""""""
+"""
+Удаление карты если у нее нету транзакций
+Если срок карты истек то на она становится серой
+
+
+
+
+"""
+
+

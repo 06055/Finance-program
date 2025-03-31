@@ -71,6 +71,14 @@ class FinanceController:
         return self.model.select_cars_all()
 
 
+    def get_subcategories_by_category(self, category_id):
+        return self.model.select_subcategories_by_category(category_id)
+
+
+    def get_counterpart_info(self, counterpart_id):
+        return self.model.select_counterpart_info(counterpart_id)
+
+
     def add_new_card(self):
         name_card,type_card,balance_card,selected_currency,selected_file_or_color,full_date = self.view.get_add_card_information()
         self.model.add_new_card(name_card,type_card,balance_card,selected_currency,selected_file_or_color,full_date)
