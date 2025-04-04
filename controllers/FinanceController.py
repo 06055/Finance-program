@@ -64,7 +64,7 @@ class FinanceController:
         elif "ucounterpartiesBlack" in image_path:
             self.view.clear_widgets()
             self.view.window_counteragents()
-            self.view.load_icons('window_ucounterparties', self.title_icons)
+            self.view.load_icons('window_counteragents', self.title_icons)
 
 
     def get_select_card_all(self):
@@ -151,6 +151,19 @@ class FinanceController:
         else:
             result = self.model.select_transaction_personal_id(self.actual_id)
             self.view.refresh_personal_transaction(result)
+
+    def submit_delete_transaction(self,transaction_id):
+        result = self.view.delete_transaction()
+
+
+        self.model.delete_transaction(transaction_id)
+        if result == 'main':
+            self.view.new_window.destroy()
+            self.view.refresh_transaction()
+        else:
+            result = self.model.select_transaction_personal_id(self.actual_id)
+            self.view.refresh_personal_transaction(result)
+    
 
 
     def update_card_name_currency(self):

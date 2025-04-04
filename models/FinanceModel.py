@@ -230,7 +230,7 @@ class FinanceModel:
             """
             cursor.execute(_SQL, (counteragent, category, subcategory, type_transaction, amount, currency, card, date))
 
-            _SQL_UPDATE_BALANCE = "UPDATE pocket SET count_money = count_money + %s WHERE name = %s"
+            _SQL_UPDATE_BALANCE = """UPDATE pocket SET count_money = count_money + %s WHERE name = %s"""
             cursor.execute(_SQL_UPDATE_BALANCE, (amount, card))
 
             dbc.commit()
@@ -365,7 +365,7 @@ class FinanceModel:
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
-        _SQL = "SELECT id, name FROM categories WHERE parent_id = %s"
+        _SQL = """SELECT id, name FROM categories WHERE parent_id = %s"""
         cursor.execute(_SQL, (counterpart_id,))
         result = cursor.fetchall()
 
@@ -380,7 +380,7 @@ class FinanceModel:
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
-        _SQL = "SELECT id, name FROM subcategory WHERE parent_id = %s"
+        _SQL = """SELECT id, name FROM subcategory WHERE parent_id = %s"""
         cursor.execute(_SQL, (category_id,))
         result = cursor.fetchall()
 
@@ -389,6 +389,33 @@ class FinanceModel:
 
         return result
 
+
+    def delete_transaction(self, transaction_id):
+        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        cursor.execute("SELECT count, card FROM transactions WHERE id = %s", (transaction_id,))
+        result = cursor.fetchone()
+
+        if result:
+            amount, card_name = result
+            amount = float(amount)
+            
+            if amount < 0:  
+                _SQL = """UPDATE pocket SET count_money = count_money + %s WHERE name = %s"""
+            else:  
+                _SQL = """UPDATE pocket SET count_money = count_money - %s WHERE name = %s"""
+            
+            cursor.execute(_SQL, (abs(amount), card_name))
+            dbc.commit()
+
+            _SQL = """DELETE FROM transactions WHERE id = %s"""
+            cursor.execute(_SQL, (transaction_id,))
+            dbc.commit()
+
+        cursor.close()
+        dbc.close()
 
 
 

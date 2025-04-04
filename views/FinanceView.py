@@ -110,7 +110,7 @@ class FinanceView(Tk):
         for filename in os.listdir(images_folder):
             if opened_window == 'window_transaction':
                 if "bookWhite" in filename or "Black" in filename or 'xplus' in filename:
-                    if "bookBlack" not in filename:
+                    if "bookBlack" not in filename and "counteragentBlack" not in filename and "categoryBlack" not in filename and "subcategoryBlack" not in filename:
                         image_path = os.path.join(images_folder, filename)
                         self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
                         self.canvas.pack(side='left')
@@ -127,7 +127,7 @@ class FinanceView(Tk):
 
             elif opened_window == 'window_cards':
                 if "cardWhite" in filename or "Black" in filename or 'xplus' in filename:
-                    if "cardBlack" not in filename:
+                    if "cardBlack" not in filename and "counteragentBlack" not in filename and "categoryBlack" not in filename and "subcategoryBlack" not in filename:
                         image_path = os.path.join(images_folder, filename)
                         self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
                         self.canvas.pack(side='left')
@@ -144,7 +144,7 @@ class FinanceView(Tk):
 
             elif opened_window == 'window_dollar':
                 if "dollarWhite" in filename or "Black" in filename or 'xplus' in filename:
-                    if "dollarBlack" not in filename:
+                    if "dollarBlack" not in filename and "counteragentBlack" not in filename and "categoryBlack" not in filename and "subcategoryBlack" not in filename:
                         image_path = os.path.join(images_folder, filename)
                         self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
                         self.canvas.pack(side='left')
@@ -161,7 +161,7 @@ class FinanceView(Tk):
 
             elif opened_window == 'window_statistic':
                 if "statisticWhite" in filename or "Black" in filename and 'xplus' not in filename:
-                    if "statisticBlack" not in filename:
+                    if "statisticBlack" not in filename and "counteragentBlack" not in filename and "categoryBlack" not in filename and "subcategoryBlack" not in filename:
                         image_path = os.path.join(images_folder, filename)
                         self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
                         self.canvas.pack(side='left')
@@ -173,19 +173,27 @@ class FinanceView(Tk):
                         if "statisticWhite" not in filename:
                             self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
 
-            elif opened_window == 'window_ucounterparties':
-                if ("ucounterpartiesWhite" in filename or "Black" in filename) and 'xplus' not in filename:
+            elif opened_window == 'window_counteragents':
+                if "ucounterpartiesWhite" in filename or "Black" in filename and 'xplus' not in filename:
                     if "ucounterpartiesBlack" not in filename:
                         image_path = os.path.join(images_folder, filename)
                         self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
                         self.canvas.pack(side='left')
-                        image = Image.open(image_path)
+                        image = Image.open(image_path).convert("RGBA")
                         photo_icon = ImageTk.PhotoImage(image)
                         self.images.append(image)  
                         self.photo_icons.append(photo_icon)  
                         self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
-                        if "ucounterpartiesWhite" not in filename and on_click_callback is not None:
+                        if "ucounterpartiesWhite" not in filename:
                             self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
+                            if 'counteragentBlack' in filename:
+                                self.canvas.bind("<Button-1>", lambda event, path=image_path: self.window_add_counteragent())
+
+                            if 'categoryBlack' in filename:
+                                self.canvas.bind("<Button-1>", lambda event, path=image_path: self.window_add_category())
+
+                            if 'subcategoryBlack' in filename:
+                                self.canvas.bind("<Button-1>", lambda event, path=image_path: self.window_add_subcategory())
 
 
     def create_middle_window(self):
@@ -223,9 +231,6 @@ class FinanceView(Tk):
 
         close_button.bind("<Enter>", on_enter)
         close_button.bind("<Leave>", on_leave)
-
-
-
 
 
     def transaction_on_plus_click(self):
@@ -403,17 +408,21 @@ class FinanceView(Tk):
         self.create_middle_window()
 
 
-    def ucounterparties_on_plus_click(self):
+    def window_add_counteragent(self):
         self.create_middle_window()
 
-        self.label_name = Label(self.new_window, text="Имя контрагента")
-        self.label_name.grid(row=0, column=0)
-        self.name_counterparty_entry = Entry(self.new_window)
-        self.name_counterparty_entry.grid(row=0, column=1)
+        center_frame = tk.Frame(self.new_window)
+        center_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        self.submit_button_add_counterparty = Button(self.new_window, text="Добавить контрагента")
+        self.label_name = Label(center_frame, text="Имя контрагента", font=("Arial", 10))
+        self.label_name.grid(row=0, column=0, pady=5, padx=10, sticky="w")
+
+        self.name_counterparty_entry = Entry(center_frame, font=("Arial", 10))
+        self.name_counterparty_entry.grid(row=1, column=0, pady=5, padx=10)
+
+        self.submit_button_add_counterparty = Button(center_frame, text="Добавить контрагента", font=("Arial", 10))
         self.submit_button_add_counterparty.config(command=self.controller_root.submit_data_add_counterparty)
-        self.submit_button_add_counterparty.grid(row=3, column=0, columnspan=2)
+        self.submit_button_add_counterparty.grid(row=2, column=0, pady=10)
 
 
     def window_add_category(self):
@@ -422,20 +431,25 @@ class FinanceView(Tk):
         self.counterparty_dict = {name: id for id, name in self.counterparty_list}
         counterparty_names = [name for _, name in self.counterparty_list]
 
-        self.label_name = Label(self.new_window, text="Имя категории")
-        self.label_name.grid(row=0, column=0)
-        self.name_category_entry = Entry(self.new_window)
-        self.name_category_entry.grid(row=0, column=1)
+        center_frame = tk.Frame(self.new_window)
+        center_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        self.label_counterparty = Label(self.new_window, text="Контрагент")
-        self.label_counterparty.grid(row=1, column=0)
+        self.label_name = Label(center_frame, text="Имя категории", font=("Arial", 10))
+        self.label_name.grid(row=0, column=0, pady=5, padx=10, sticky="w")
+
+        self.name_category_entry = Entry(center_frame, font=("Arial", 10))
+        self.name_category_entry.grid(row=1, column=0, pady=5, padx=10)
+
+        self.label_counterparty = Label(center_frame, text="Контрагент", font=("Arial", 10))
+        self.label_counterparty.grid(row=2, column=0, pady=5, padx=10, sticky="w")
+
         self.select_counterpart = tk.StringVar(value="Выбрать контрагента")
-        self.counterparty_id_category_menu = ttk.OptionMenu(self.new_window, self.select_counterpart,None, *counterparty_names)
-        self.counterparty_id_category_menu.grid(row=1, column=1)
+        self.counterparty_id_category_menu = ttk.OptionMenu(center_frame, self.select_counterpart, None, *counterparty_names)
+        self.counterparty_id_category_menu.grid(row=3, column=0, pady=5, padx=10)
 
-        self.submit_button_add_category = Button(self.new_window, text="Добавить категорию")
+        self.submit_button_add_category = Button(center_frame, text="Добавить категорию", font=("Arial", 10))
         self.submit_button_add_category.config(command=self.controller_root.submit_data_add_category)
-        self.submit_button_add_category.grid(row=2, column=0, columnspan=2)
+        self.submit_button_add_category.grid(row=4, column=0, pady=10)
 
 
     def window_add_subcategory(self):
@@ -444,20 +458,25 @@ class FinanceView(Tk):
         self.category_for_subcategory_dict = {name: id for id, name in self.category_for_subcategory}
         category_for_subcategory_names = [name for _, name in self.category_for_subcategory]
 
-        self.label_name = Label(self.new_window, text="Имя подкатегории")
-        self.label_name.grid(row=0, column=0)
-        self.name_subcategory_entry = Entry(self.new_window)
-        self.name_subcategory_entry.grid(row=0, column=1)
+        center_frame = tk.Frame(self.new_window)
+        center_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        self.label_category = Label(self.new_window, text="Категория")
-        self.label_category.grid(row=1, column=0)
+        self.label_name = Label(center_frame, text="Имя подкатегории", font=("Arial", 10))
+        self.label_name.grid(row=0, column=0, pady=5, padx=10, sticky="w")
+
+        self.name_subcategory_entry = Entry(center_frame, font=("Arial", 10))
+        self.name_subcategory_entry.grid(row=1, column=0, pady=5, padx=10)
+
+        self.label_category = Label(center_frame, text="Категория", font=("Arial", 10))
+        self.label_category.grid(row=2, column=0, pady=5, padx=10, sticky="w")
+
         self.select_category = tk.StringVar(value="Выбрать категорию")
-        self.category_id_subcategory_menu = ttk.OptionMenu(self.new_window, self.select_category,None, *category_for_subcategory_names)
-        self.category_id_subcategory_menu.grid(row=1, column=1)
+        self.category_id_subcategory_menu = ttk.OptionMenu(center_frame, self.select_category, None, *category_for_subcategory_names)
+        self.category_id_subcategory_menu.grid(row=3, column=0, pady=5, padx=10)
 
-        self.submit_button_add_subcategory = Button(self.new_window, text="Добавить подкатегорию")
+        self.submit_button_add_subcategory = Button(center_frame, text="Добавить подкатегорию", font=("Arial", 10))
         self.submit_button_add_subcategory.config(command=self.controller_root.submit_data_add_subcategory)
-        self.submit_button_add_subcategory.grid(row=2, column=0, columnspan=2)
+        self.submit_button_add_subcategory.grid(row=4, column=0, pady=10)
 
 
     def get_counterparty_input(self):
@@ -737,9 +756,9 @@ class FinanceView(Tk):
         self.buttom_edit.config(command=self.controller_root.submit_edit_transaction)
         self.buttom_edit.grid(row=13, column=0, padx=20, pady=0, sticky="w")
 
-        self.buttom_edit = Button(self.new_window, text='Удалить')
-        self.buttom_edit.config(command='')
-        self.buttom_edit.grid(row=13, column=1, padx=20, pady=0, sticky="w")
+        self.buttom_delete = Button(self.new_window, text='Удалить')
+        self.buttom_delete.config(command=lambda: self.controller_root.submit_delete_transaction(transaction_id))
+        self.buttom_delete.grid(row=13, column=1, padx=20, pady=0, sticky="w")
 
 
     def edit_transaction(self):
@@ -752,6 +771,10 @@ class FinanceView(Tk):
         currency = self.currency
         date = self.selected_date()
         return counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date, self.who_window_transaction, self.selected_before_card
+
+
+    def delete_transaction(self):
+        return self.who_window_transaction
 
 
     def on_card_click(self, card_id):
@@ -780,9 +803,22 @@ class FinanceView(Tk):
         for i in range(card_in_row):
             cards_frame.columnconfigure(i, weight=1)
 
+        def create_transparent_overlay(size, alpha=120):
+            overlay = Image.new("RGBA", size, (169, 169, 169, alpha))
+            return ImageTk.PhotoImage(overlay)
+
+        overlay_image = create_transparent_overlay((350, 180))
+
         for i, card in enumerate(cards):
             (card_id, name, type_pocket, type_currency,
             data_made, data_change, count_money, bg_color, bg_picture) = card
+
+            if isinstance(data_made, str):
+                data_made_dt = datetime.strptime(data_made, "%d-%m-%Y")
+            else:
+                data_made_dt = data_made
+
+            date_now = datetime.now()
 
             card_frame = Frame(cards_frame, width=350, height=180, bg=bg_color)
             card_frame.card_id = card_id
@@ -791,7 +827,6 @@ class FinanceView(Tk):
 
             canvas = Canvas(card_frame, width=350, height=180, bg=bg_color, bd=0, highlightthickness=0)
             canvas.place(relx=0, rely=0, anchor="nw")
-
 
             text_color = "white"
 
@@ -810,12 +845,15 @@ class FinanceView(Tk):
             if name:
                 canvas.create_text(20, 35, text=name, fill=text_color, font=("Arial", 12, "bold"), anchor="w")
             if data_made:
-                data_made_str = self.format_date(data_made)
-                canvas.create_text(20, 75, text=data_made_str, fill=text_color, font=("Arial", 10), anchor="w")
+                formatted_date = data_made_dt.strftime("%d-%m-%Y")  
+                canvas.create_text(20, 75, text=formatted_date, fill=text_color, font=("Arial", 10), anchor="w")
             if count_money:
-                if count_money != 0:
-                    formatted_balance = self.format_balance(count_money)
+                formatted_balance = self.format_balance(count_money) if count_money != 0 else "0"
                 canvas.create_text(330, 160, text=f"{formatted_balance} {type_currency}", fill=text_color, font=("Arial", 10), anchor="e")
+
+            if date_now > data_made_dt:
+                canvas.create_image(0, 0, image=overlay_image, anchor="nw")
+                card_frame.overlay_image = overlay_image
 
             canvas.bind("<Button-1>", lambda event, card_frame=card_frame: self.on_card_click(card_frame.card_id))
 
@@ -1079,7 +1117,7 @@ class FinanceView(Tk):
         self.tree_right.bind("<<TreeviewOpen>>", lambda event: self.toggle_arrow(event, "▶", "▼", self.tree_right))
         self.tree_right.bind("<<TreeviewClose>>", lambda event: self.toggle_arrow(event, "▼", "▶", self.tree_right))
 
-        
+
     def on_item_selected(self, event):
         tree = event.widget  
         selected_items = tree.selection()  
@@ -1091,7 +1129,6 @@ class FinanceView(Tk):
         item_text = item["text"]  
         item_id = item["values"][0]
         
-
         for widget in self.white_column.winfo_children():
             widget.destroy()
 
@@ -1106,7 +1143,6 @@ class FinanceView(Tk):
 
         if item_id:
             item_type = item['tags'][0]
-
 
             if item_type == "Контрагент":
                 related_data = self.controller_root.get_counterpart_info(item_id)
@@ -1124,19 +1160,77 @@ class FinanceView(Tk):
 
         col1 = tk.Frame(bottom_frame, bg="white")
         col2 = tk.Frame(bottom_frame, bg="white")
+        col3 = tk.Frame(bottom_frame, bg="white")
 
-        col1.pack(side="left", fill="both", expand=True)
-        col2.pack(side="left", fill="both", expand=True)
+        col1.grid(row=0, column=0, sticky="nsew", padx=10)
+        col2.grid(row=0, column=1, sticky="nsew", padx=10)
+        col3.grid(row=0, column=2, sticky="nsew", padx=10)
 
-        tk.Label(col1, font=("Arial", 12, "bold"), bg="white").pack()
-        tk.Label(col2, font=("Arial", 12, "bold"), bg="white").pack()
+        bottom_frame.grid_rowconfigure(0, weight=1)
+        bottom_frame.grid_columnconfigure(0, weight=1)
+        bottom_frame.grid_columnconfigure(1, weight=1)
+        bottom_frame.grid_columnconfigure(2, weight=1)
+
+        tk.Label(col1, font=("Arial", 12, "bold"), bg="white").grid(row=0, column=0, sticky="w")
+        tk.Label(col2, font=("Arial", 12, "bold"), bg="white").grid(row=0, column=0, sticky="w")
+        tk.Label(col3, font=("Arial", 12, "bold"), bg="white").grid(row=0, column=0, sticky="w")
+
+        edit_icon = PhotoImage(file="images/image_buttom/change.png")  
+        delete_icon = PhotoImage(file="images/image_buttom/dustbin.png")  
+
+        counteragent_data = (item_id, item_text[0:-2])
+
+        button_frame = tk.Frame(header_frame, bg="white")
+        button_frame.pack(side="right")
+
+        edit_button_counteragent = tk.Button(button_frame, image=edit_icon, command=lambda: self.edit_category_subcategory(counteragent_data))
+        edit_button_counteragent.image = edit_icon  
+        edit_button_counteragent.pack(side=TOP,anchor="ne")
+
+        delete_button_counteragent = tk.Button(button_frame, image=delete_icon, command=lambda: self.delete_category_subcategory(counteragent_data))
+        delete_button_counteragent.image = delete_icon  
+        delete_button_counteragent.pack(side=TOP,anchor="ne")
+
+        row_index = 1  
 
         if related_data:
             for i, data in enumerate(related_data):
-                target_col = col1 if i % 2 == 0 else col2
-                tk.Label(target_col, text=data[1], bg="white", font=("Arial", 12)).pack()
+                if i % 3 == 0:
+                    target_col = col1
+                elif i % 3 == 1:
+                    target_col = col2
+                else:
+                    target_col = col3
+
+                label = tk.Label(target_col, text=data[1], bg="white", font=("Arial", 12))
+                label.grid(row=row_index, column=0, sticky="w", pady=5)
+
+                edit_button = tk.Button(target_col, image=edit_icon, command=lambda data=data: self.edit_category_subcategory(data))
+                edit_button.image = edit_icon  
+                edit_button.grid(row=row_index, column=1, sticky="e", padx=5)
+
+                delete_button = tk.Button(target_col, image=delete_icon, command=lambda data=data: self.delete_category_subcategory(data))
+                delete_button.image = delete_icon  
+                delete_button.grid(row=row_index, column=2, sticky="e", padx=5)
+
+                row_index += 1 
+
         else:
-            tk.Label(col1, text="Нет данных", bg="white", font=("Arial", 12)).pack()
+            tk.Label(col1, text="Нет данных", bg="white", font=("Arial", 12)).grid(row=0, column=0, sticky="w")
+
+
+
+
+
+    def edit_category_subcategory(self, data):
+        print(f"Редактировать: {data}")
+
+
+
+    def delete_category_subcategory(self, data):
+        print(f"Удалить: {data}")
+
+
 
 
     def toggle_arrow(self, event, old_symbol, new_symbol, tree):
@@ -1148,77 +1242,23 @@ class FinanceView(Tk):
 
 
 
-    # def change_counteragents(self, counterparty_id):
-    #     self.create_middle_window() 
-    #     counterparty = next((item for item in self.controller_root.update_counterparty_list() if item[0] == counterparty_id), None)
-    #     counterparty_name = counterparty[1] if counterparty else "Не найден"
-        
-    #     list_category = self.controller_root.update_category_list()
-
-    #     label_counterparty = Label(self.new_window, text=f"Контрагент: {counterparty_name}", font=("Arial", 12, "bold"))
-    #     label_counterparty.grid(row=0, column=0, columnspan=3, pady=10, sticky="nsew")  
-
-    #     main_frame = Frame(self.new_window)
-    #     main_frame.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="nsew")
-
-    #     card_in_row = 3  
-    #     for i in range(card_in_row):
-    #         main_frame.grid_columnconfigure(i, weight=1, uniform="equal") 
-
-    #     row_counter = 0  
-    #     col_counter = 0  
-
-    #     for category in list_category:
-    #         category_id, category_name, parent_id = category
-    #         if parent_id == counterparty_id:
-
-    #             label_category = Label(main_frame, text=f"{category_name}", font=("Arial", 10))
-    #             label_category.grid(row=row_counter, column=col_counter, padx=10, pady=5, sticky="nsew") 
-
-    #             button_remove = Button(main_frame, text="❌", command=lambda cid=category_id: self.remove_category(cid))
-    #             button_remove.grid(row=row_counter, column=col_counter + 1, padx=5, pady=5, sticky="nsew")  
-
-    #             empty_label = Label(main_frame, text="", font=("Arial", 10))
-    #             empty_label.grid(row=row_counter, column=col_counter + 2, padx=5, pady=5, sticky="nsew") 
-
-    #             col_counter += 3  
-
-    #             if col_counter >= card_in_row * 3:
-    #                 col_counter = 0
-    #                 row_counter += 1
-
-
-    def remove_category(self, category_id):
-        """Настроисть удаление подкатегории по id"""
-        print(f"Удалена подкатегория с id: {category_id}")
-
-
-
 """
-
-✓1.СДЕЛАТЬ новый дизайн добавление транзакций(ГЛАВНОЕ ОКНО)
-✓2.СДЕЛАТЬ новый дизайн добавление транзакций(ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ)
-3.СДЕЛАТЬ нормальное расположение кнопок в КОНТРАГЕНТАХ
-4.СДЕЛАТЬ ВЫВОД КОНТРАГЕНТОВ(КАТЕГОРИЙ И ПОД КАТЕГОРИЙ В 4 КОЛОНКИ)
-5.СДЕЛАТЬ УДАЛЕНИЕ ТРАНЗАКЦИЙ(ГЛАВНОЕ ОКНО)
-✓6.СДЕЛАТЬ РЕДАКТИРОВАНИЕ ТРАНЗАКЦИЙ(ГЛАВНОЕ ОКНО)
-✓7.СДЕЛАТЬ ОБНОВЛЕНИЕ ПОСЛЕ КАЖДОЙ ДОБАВЛЕННОЙ ТРАНЗАКЦИИ(ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ)
-8.СДЕЛАТЬ НОРМАЛЬНУЮ КНОПКУ ДОБАВЛЕНИЯ ТРАНЗАКЦИЙ В(ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ)
-
-
-✓1.ПОФИКСИТЬ ПРОБЛЕМУ С ОТКРЫТИЕМ ОКНА(ДОБАВЛЕНИЕ ТРАНЗАКЦИЙ)
-2.ПОФИКСИТЬ ВЫВОД ТРАНЗАКЦИЙ В (ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ)
-✓3.ПОФИКСИТЬ БЕЛЫЙ ЭКРАН ПОСЛЕ ДОБАВЛЕНИЯ (ПЕРСОНАЛЬНОЙ ТРАНЗАКЦИИ)
-
-1.ОТРЕДАКТИРОВАТЬ ФОТОГРАФИЮ С КОНТРАГЕНТАМИ
+5.СДЕЛАТЬ УДАЛЕНИЕ КОНТР,КАТЕГОР,ПОДКАТЕГОР
+6.СДЕЛАТЬ РЕДАКТИРОВАНИЕ КОНТР,КАТЕГОР,ПОДКАТЕГОР
 
 """
 
 
 
 """
-Удаление карты если у нее нету транзакций
-Если срок карты истек то на она становится серой
+
+ОСТАЛОСЬ ЧТО БЫ ПЕРЕЙТИ
+
+Закончить удаление и редактирваоние категорий и подкатегорий
+Добавить кнопку удаления и редактирования контрагента
+ДОБАВИТЬ В добавление категории или подкатегории что бы подтягивало контрагента или категорию
+Нормальное размещение кнопки добавления в ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ
+УДАЛЕНИЕ КАРТЫ
 
 
 
