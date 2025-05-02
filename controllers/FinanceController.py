@@ -1,7 +1,10 @@
+from tkinter import filedialog, messagebox
+
 class FinanceController:
     def __init__(self, model, view):
         self.model = model
         self.view = view
+        self.user_id = None #ID USER
         self.view.window_reg()
         self.view.set_controller(self)
         self.view.submit_button_reg.config(command=self.submit_data_reg)
@@ -30,7 +33,10 @@ class FinanceController:
     def submit_data_log_and_main(self):
         gmail, password = self.view.get_user_input_log()
         result = self.model.model_logining(gmail, password)
-        if result == 'Yes':
+        
+        if isinstance(result, tuple) and result[0] == 'Yes':
+            self.user_id = result[1]
+
             self.view.clear_widgets()
             self.view.window_transaction()
             self.view.load_icons('window_transaction', self.title_icons)
@@ -48,7 +54,7 @@ class FinanceController:
 
         elif "cardBlack" in image_path:
             self.view.clear_widgets()
-            self.view.window_cards(self.model.select_cars_all())
+            self.view.window_cards(self.model.select_cars_all(self.user_id))
             self.view.load_icons('window_cards', self.title_icons)
 
         elif "dollarBlack" in image_path:
@@ -68,7 +74,7 @@ class FinanceController:
 
 
     def get_select_card_all(self):
-        return self.model.select_cars_all()
+        return self.model.select_cars_all(self.user_id)
 
 
     def get_subcategories_by_category(self, category_id):
@@ -80,22 +86,43 @@ class FinanceController:
 
 
     def add_new_card(self):
-        name_card,type_card,balance_card,selected_currency,selected_file_or_color,full_date = self.view.get_add_card_information()
-        self.model.add_new_card(name_card,type_card,balance_card,selected_currency,selected_file_or_color,full_date)
+        name_card,type_card,balance_card,selected_currency,selected_file_or_color,full_date,status = self.view.get_add_card_information()
+        self.model.add_new_card(name_card,type_card,balance_card,selected_currency,selected_file_or_color,full_date,status,self.user_id)
         self.view.new_window.destroy()
+        self.view.refresh_cards()
+
+
+    def try_delete_card(self, card_id):
+
+        result = self.model.can_delete_card(card_id)
+        if result == None:
+            messagebox.showwarning("Невозможно удалить", "Карта не может быть удалена. Убедитесь, что:\n- Баланс равен 0\n- Срок действия истёк или нет транзакций")
+
+        if result[0]:
+            confirm = messagebox.askyesno("Подтверждение", f"Вы уверены, что хотите удалить карту {result[1]}?")
+            if confirm:
+                pass
+                self.model.delete_card(card_id,result[1])
+                messagebox.showinfo("Удалено", "Карта успешно удалена.")
+                self.view.new_window.destroy()
+                self.view.refresh_cards()
+
+
+    def try_edit_card(self, card_id, new_name, new_type, new_currency, float_money, formatted):
+        self.model.edit_card(card_id, new_name, new_type, new_currency, float_money, formatted)
         self.view.refresh_cards()
 
 
     def add_transaction(self):
         counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date = self.view.get_transaction_information()
-        self.model.add_transaction(counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date)
+        self.model.add_transaction(counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date, self.user_id)
         self.view.new_window.destroy()
         self.view.refresh_transaction()
 
 
     def add_transaction_personal(self):
         counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date = self.view.get_transaction_information()
-        self.model.add_transaction(counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date)
+        self.model.add_transaction(counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date,self.user_id)
         result = self.model.select_transaction_personal_id(self.actual_id)
         self.view.refresh_personal_transaction(result)
 
@@ -106,20 +133,24 @@ class FinanceController:
 
     def submit_data_add_counterparty(self):
         name = self.view.get_counterparty_input()  
-        self.model.add_counterparty(name)
+        self.model.add_counterparty(name,self.user_id)
         self.view.new_window.destroy()
+        self.view.refresh_counteragents()
 
 
     def submit_data_add_category(self):
         name, parent_id = self.view.get_category_input()
-        self.model.add_category(name, parent_id)
+        self.model.add_category(name, parent_id, self.user_id)
         self.view.new_window.destroy()
+        self.view.refresh_counteragents()
 
 
     def submit_data_add_subcategory(self):
         name, parent_id = self.view.get_subcategory_input()
-        self.model.add_subcategory(name,parent_id)
+        self.model.add_subcategory(name,parent_id,self.user_id)
         self.view.new_window.destroy() 
+        self.view.refresh_counteragents()
+
 
 
     def submit_update_personal_card_transaction(self, card_id):
@@ -163,7 +194,50 @@ class FinanceController:
         else:
             result = self.model.select_transaction_personal_id(self.actual_id)
             self.view.refresh_personal_transaction(result)
-    
+
+
+    def submit_edit_conagent_category_subcategory(self, data, type_item):
+        item_id, name = data
+        transactions = self.model.check_for_transactions(item_id, type_item)
+
+        if transactions:
+            
+            if type_item == "Контрагент":
+                self.model.update_counteragent(name, item_id)
+            elif type_item == "Категория":
+                self.model.update_category(name, item_id)  
+            elif type_item == "Подкатегория":
+                self.model.update_subcategory(name, item_id)  
+        else:
+            if type_item == "Контрагент":
+                self.model.update_counteragent(name, item_id)
+            elif type_item == "Категория":
+                self.model.update_category(name, item_id)  
+            elif type_item == "Подкатегория":
+                self.model.update_subcategory(name, item_id)  
+
+        self.view.refresh_counteragents()
+
+
+    def submit_delete_conagent_category_subcategory(self, data, type_item):
+        item_id, name = data
+
+        deleted = False
+
+        if type_item == "Контрагент":
+            deleted = self.model.delete_counteragent(name,item_id)
+        elif type_item == "Категория":
+            deleted = self.model.delete_category(name)
+        elif type_item == "Подкатегория":
+            deleted = self.model.delete_subcategory(name)
+
+        self.view.refresh_counteragents()
+        return deleted
+
+
+    def update_info_delete_conagent_category_subcategory(self,item_id,type_item):
+        transactions = self.model.check_for_transactions(item_id, type_item)
+        return transactions
 
 
     def update_card_name_currency(self):
@@ -172,37 +246,42 @@ class FinanceController:
 
 
     def update_card_list(self):
-        card_names = self.model.select_cars()
+        card_names = self.model.select_cars(self.user_id)
         return card_names
 
 
     def update_card_currency(self, selected_card):
         return self.model.select_currency_by_card(selected_card)
+    
+
 
 
     def update_counterparty_list(self):
-        self.counterparty = self.model.select_counterparties()
+        self.counterparty = self.model.select_counterparties(self.user_id)
         return self.counterparty
 
 
     def update_category_list(self):
-        self.category = self.model.select_category()
+        self.category = self.model.select_category(self.user_id)
         return self.category
 
 
     def update_subcategory_list(self):
-        self.subcategory = self.model.select_subcategory()
+        self.subcategory = self.model.select_subcategory(self.user_id)
         return self.subcategory
 
 
     def update_category_for_subcategory(self):
-        self.category_for_subcategory = self.model.select_category_for_subcategory()
+        self.category_for_subcategory = self.model.select_category_for_subcategory(self.user_id)
         return self.category_for_subcategory
 
 
     def update_transaction(self):
-        self.transaction = self.model.select_transaction()
+        self.transaction = self.model.select_transaction(self.user_id)
         return self.transaction
 
 
+    def show_card_by_name(self, card_name):
+        card_data = self.model.select_card_by_name(card_name, self.user_id)
+        self.view.choice_edit_delete_card(card_data)
 

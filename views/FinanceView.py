@@ -7,7 +7,7 @@ from tkinter import StringVar, OptionMenu
 from tkinter import font
 from tkinter import Tk, Canvas, Frame, Scrollbar, Label, Button, VERTICAL, RIGHT, LEFT, Y
 from tkcalendar import Calendar
-from datetime import datetime
+from datetime import datetime, timedelta
 from PIL import Image, ImageTk, ImageOps, ImageStat
 import os
 import shutil
@@ -121,7 +121,7 @@ class FinanceView(Tk):
                         self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
                         if "bookWhite" not in filename:
                             if 'xplus' in filename:
-                                self.canvas.bind("<Button-1>", lambda event, path=image_path: self.transaction_on_plus_click())
+                                self.canvas.bind("<Button-1>", lambda event, path=image_path: self.window_add_transactions())
                             elif on_click_callback != None:
                                 self.canvas.bind("<Button-1>", lambda event, path=image_path: on_click_callback(path))
 
@@ -233,7 +233,7 @@ class FinanceView(Tk):
         close_button.bind("<Leave>", on_leave)
 
 
-    def transaction_on_plus_click(self):
+    def window_add_transactions(self):
         self.create_middle_window()
 
         counterparty_list = self.controller_root.update_counterparty_list()
@@ -269,18 +269,22 @@ class FinanceView(Tk):
         self.selected_counterparty.trace("w", update_categories)
 
         def update_subcategories(*args):
+            selected_counterparty_name = self.selected_counterparty.get()
             selected_categires_name = self.selected_categires.get()
-            selected_categires_id = None
             
-            for categorie in category_list:
-                if categorie[1] == selected_categires_name:
-                    selected_categires_id = categorie[0]
-                    break
-            filtered_subcategories = [name for _, name, categorie_id in subcategory_list if categorie_id == selected_categires_id]
-            self.selected_subcategires.set("Выбор категории")  
-            self.namesubcategorie_menu['menu'].delete(0, 'end')  
-            for subcategories in filtered_subcategories:
-                self.namesubcategorie_menu['menu'].add_command(label=subcategories, command=tk._setit(self.selected_subcategires, subcategories))
+            selected_counterparty_id = next((id for id, name in counterparty_list if name == selected_counterparty_name), None)
+            selected_categires_id = next(
+                (id for id, name, cp_id in category_list
+                if name == selected_categires_name and cp_id == selected_counterparty_id),
+                None
+            )
+            filtered_subcategories = [name for _, name, cat_id in subcategory_list if cat_id == selected_categires_id]
+            
+            self.selected_subcategires.set("Выбор подкатегории")
+            self.namesubcategorie_menu['menu'].delete(0, 'end')
+            for subcat in filtered_subcategories:
+                self.namesubcategorie_menu['menu'].add_command(label=subcat, command=tk._setit(self.selected_subcategires, subcat))
+
 
         self.label_namecategorie = ttk.Label(self.new_window, width=30, text='Название категории', font=("Arial", 16))
         self.label_namecategorie.grid(row=3, column=0, pady=0, padx=20, sticky="n")
@@ -362,10 +366,17 @@ class FinanceView(Tk):
         self.name_card_entry = ttk.Entry(self.new_window, width=30, font=("Arial", 13))
         self.name_card_entry.grid(row=2, column=0, padx=20, pady=10, sticky="w")
 
+
+
         self.label_typecard = ttk.Label(self.new_window, width=30, text='Тип карты', font=("Arial", 16))
         self.label_typecard.grid(row=3, column=0, pady=10, padx=20, sticky="n")
-        self.type_card_entry = ttk.Entry(self.new_window, width=30, font=("Arial", 13))
+        options = ['Debit','Kredit']
+        self.selected_type = tk.StringVar(value="Выберите тип карты")
+        
+        self.type_card_entry = tk.OptionMenu(self.new_window, self.selected_type, *options)
+        self.type_card_entry.config(width=26, font=("Arial", 13)) 
         self.type_card_entry.grid(row=4, column=0, padx=20, pady=10, sticky="w")
+
 
         self.label_balancecard = ttk.Label(self.new_window, width=30, text='Баланс карты', font=("Arial", 16))
         self.label_balancecard.grid(row=5, column=0, pady=10, padx=20, sticky="n")
@@ -378,26 +389,75 @@ class FinanceView(Tk):
         self.dropdown.grid(row=6, column=0, pady=10, padx=(237.3, 0), sticky="w")
 
         self.submit_button_open_file = tk.Button(self.new_window, text='Выбор картинки', command=self.open_file)
-        self.submit_button_open_file.grid(row=7, column=0, pady=5, padx=10, sticky="w")
+        self.submit_button_open_file.grid(row=7, column=0, pady=5, padx=20, sticky="w")
 
         self.image_rgb = ImageTk.PhotoImage(file=r'C:\Finans_programm\images\image_buttom\rgb20.png')
         self.submit_buttom_color = ttk.Button(self.new_window, image=self.image_rgb, width=10, command=self.choose_color)
-        self.submit_buttom_color.grid(row=7, column=0, pady=7, padx=110, sticky="w")
+        self.submit_buttom_color.grid(row=7, column=0, pady=7, padx=120, sticky="w")
 
         self.calendar = Calendar(self.new_window, selectmode='day', year=datetime.now().year, month=datetime.now().month, day=datetime.now().day)
         self.calendar.grid(row=2, column=1, rowspan=6 ,pady=0, padx = 0,   sticky="n")
 
         self.submit_button_card = ttk.Button(self.new_window, text="Добавить", width=30)
-        self.submit_button_card.config(command=self.controller_root.add_new_card)
+        self.submit_button_card.config(command=self.add_card)
         self.submit_button_card.grid(row=8, column=0, pady=10, padx=20, sticky="n")
+
+
+    def add_card(self):
+        if not self.name_card_entry.get() or self.selected_type.get() == "Выберите тип карты" or not self.balance_card_entry.get():
+
+            messagebox.showerror("Ошибка", "Пожалуйста, заполните все обязательные поля.")
+            return
+
+        if not hasattr(self, 'selected_picture_or_color') or not self.selected_picture_or_color:
+            messagebox.showerror("Ошибка", "Пожалуйста, выберите либо изображение, либо цвет для карты.")
+            return
+        
+        self.controller_root.add_new_card()
+
+        messagebox.showinfo("Успех", "Карта успешно добавлена!")
+
+
+    def open_file(self):
+        file_path = filedialog.askopenfilename(
+            title="Выберите файл",
+            filetypes=(("Все файлы", "*.*"), ("Текстовые файлы", "*.txt"), ("Изображения", "*.png;*.jpg;*.jpeg"))
+        )
+        if file_path:
+            selected_file = file_path
+            try:
+                os.mkdir('C://Finans_programm/images/background_card')
+            except FileExistsError:
+                pass
+
+            destination_folder = 'C://Finans_programm/images/background_card'
+            destination_path = os.path.join(destination_folder, os.path.basename(file_path))
+            shutil.move(file_path, destination_path)
+            print(f"Файл перемещен в: {destination_path}")
+            self.selected_picture_or_color = destination_path
+        else:
+            messagebox.showerror("Файл не выбран")
+
+    def choose_color(self):
+        color = colorchooser.askcolor(title='Choose color')[1]
+        if color:
+            self.selected_picture_or_color = color
+
 
 
     def get_add_card_information(self):
         name_card = self.name_card_entry.get()
-        type_card = self.type_card_entry.get()
+        type_card = self.selected_type.get()  
         balance_card = self.balance_card_entry.get()
         selected_currency = self.selected_currency.get()
-        return name_card,type_card,balance_card,selected_currency,self.selected_picture_or_color,self.selected_date()
+        data_made_dt = self.selected_date()  
+        date_now = datetime.now().date()    
+        status = True
+        if date_now > data_made_dt:
+            status = None 
+
+        return name_card, type_card, balance_card, selected_currency, self.selected_picture_or_color, data_made_dt, status
+
 
 
     def statistic_on_plus_click(self):
@@ -456,27 +516,51 @@ class FinanceView(Tk):
         self.create_middle_window()
         self.category_for_subcategory = self.controller_root.update_category_for_subcategory()
         self.category_for_subcategory_dict = {name: id for id, name in self.category_for_subcategory}
-        category_for_subcategory_names = [name for _, name in self.category_for_subcategory]
-
+        counterparty_list = self.controller_root.update_counterparty_list()
+        category_list = self.controller_root.update_category_list()
+        option_counterparty = [name for _, name in counterparty_list]
         center_frame = tk.Frame(self.new_window)
         center_frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        self.label_name = Label(center_frame, text="Имя подкатегории", font=("Arial", 10))
-        self.label_name.grid(row=0, column=0, pady=5, padx=10, sticky="w")
 
+        def update_categories(*args):  
+            selected_counterparty_name = self.selected_counterparty.get()
+            selected_counterparty_id = None
+            
+            for counterparty in counterparty_list:
+                if counterparty[1] == selected_counterparty_name:
+                    selected_counterparty_id = counterparty[0]
+                    break
+            filtered_categories = [name for _, name, counterparty_id in category_list if counterparty_id == selected_counterparty_id]
+            self.select_category.set("Выбор категории")  
+            self.namecategorie_menu['menu'].delete(0, 'end')  
+            for category in filtered_categories:
+                self.namecategorie_menu['menu'].add_command(label=category, command=tk._setit(self.select_category, category))
+
+        self.label_counterparty = ttk.Label(center_frame, width=20, text='Выбор контрагента', font=("Arial", 10))
+        self.label_counterparty.grid(row=0, column=0, pady=5, padx=10)
+        self.selected_counterparty = tk.StringVar(value='Выбор контрагента')
+        self.counterparty_menu = ttk.OptionMenu(center_frame, self.selected_counterparty, None, *option_counterparty)
+        self.counterparty_menu.grid(row=1, column=0, pady=5, padx=10)
+        self.selected_counterparty.trace("w", update_categories)
+
+
+        self.label_namecategorie = ttk.Label(center_frame, width=20, text='Название категории', font=("Arial", 10))
+        self.label_namecategorie.grid(row=2, column=0, pady=0, padx=20, sticky="n")
+        self.select_category = tk.StringVar(value="Выбор категории")
+        self.namecategorie_menu = ttk.OptionMenu(center_frame, self.select_category, None)
+
+        self.namecategorie_menu.grid(row=3, column=0, pady=5, padx=10)
+
+        self.label_name = Label(center_frame, width=20, text="Имя подкатегории", font=("Arial", 10))
+        self.label_name.grid(row=4, column=0, pady=5, padx=10)
         self.name_subcategory_entry = Entry(center_frame, font=("Arial", 10))
-        self.name_subcategory_entry.grid(row=1, column=0, pady=5, padx=10)
+        self.name_subcategory_entry.grid(row=5, column=0, pady=5, padx=10)
 
-        self.label_category = Label(center_frame, text="Категория", font=("Arial", 10))
-        self.label_category.grid(row=2, column=0, pady=5, padx=10, sticky="w")
-
-        self.select_category = tk.StringVar(value="Выбрать категорию")
-        self.category_id_subcategory_menu = ttk.OptionMenu(center_frame, self.select_category, None, *category_for_subcategory_names)
-        self.category_id_subcategory_menu.grid(row=3, column=0, pady=5, padx=10)
 
         self.submit_button_add_subcategory = Button(center_frame, text="Добавить подкатегорию", font=("Arial", 10))
         self.submit_button_add_subcategory.config(command=self.controller_root.submit_data_add_subcategory)
-        self.submit_button_add_subcategory.grid(row=4, column=0, pady=10)
+        self.submit_button_add_subcategory.grid(row=6, column=0, pady=10)
 
 
     def get_counterparty_input(self):
@@ -495,6 +579,7 @@ class FinanceView(Tk):
         name = self.name_subcategory_entry.get()
         category_name = self.select_category.get()
         category_id = self.category_for_subcategory_dict.get(category_name)
+
         return name,category_id
 
 
@@ -502,33 +587,6 @@ class FinanceView(Tk):
         selected_date = self.calendar.get_date()
         full_date = datetime.strptime(selected_date, "%m/%d/%y").date()
         return full_date
-
-
-    def open_file(self):
-        file_path = filedialog.askopenfilename(
-            title="Выберите файл",
-            filetypes=(("Все файлы", "*.*"), ("Текстовые файлы", "*.txt"), ("Изображения", "*.png;*.jpg;*.jpeg"))
-        )
-        if file_path:
-            selected_file = file_path
-            try:
-                os.mkdir('C://Finans_programm/images/background_card')
-            except FileExistsError:
-                pass
-
-            destination_folder = 'C://Finans_programm/images/background_card'
-            destination_path = os.path.join(destination_folder, os.path.basename(file_path))
-            shutil.move(file_path, destination_path)
-            print(f"Файл перемещен в: {destination_path}")
-            self.selected_picture_or_color = destination_path
-        else:
-            print("Файл не выбран")
-
-
-    def choose_color(self):
-        color = colorchooser.askcolor(title='Choose color')[1]
-        if color:
-            self.selected_picture_or_color = color
 
 
     def format_balance(self, balance):
@@ -546,13 +604,14 @@ class FinanceView(Tk):
             return date 
 
 
-    def get_inverse_color(self,image):
+    def get_inverse_color(self, image):
         if image.mode != "RGB":
             image = image.convert("RGB")
-        
+
         stat = ImageStat.Stat(image)
         r, g, b = stat.mean[:3]
-        brightness = (r * 0.299 + g * 0.587 + b * 0.114) 
+        brightness = round(r * 0.299 + g * 0.587 + b * 0.114)
+
         return "black" if brightness > 127 else "white"
 
 
@@ -597,6 +656,14 @@ class FinanceView(Tk):
             self.nametowidget(f_name).destroy()
         self.window_transaction()
         self.load_icons('window_transaction', self.controller_root.title_icons)
+
+
+    def refresh_counteragents(self):
+        all_frames = [f for f in self.children]
+        for f_name in all_frames:
+            self.nametowidget(f_name).destroy()
+        self.window_counteragents()
+        self.load_icons('window_counteragents', self.controller_root.title_icons)
 
 
     def window_transaction(self):
@@ -689,7 +756,7 @@ class FinanceView(Tk):
                     selected_categires_id = categorie[0]
                     break
             filtered_subcategories = [name for _, name, categorie_id in subcategory_list if categorie_id == selected_categires_id]
-            self.selected_subcategires.set("Выбор категории")  
+            self.selected_subcategires.set("Выбор подкатегории")  
             self.namesubcategorie_menu['menu'].delete(0, 'end')  
             for subcategories in filtered_subcategories:
                 self.namesubcategorie_menu['menu'].add_command(label=subcategories, command=tk._setit(self.selected_subcategires, subcategories))
@@ -796,66 +863,81 @@ class FinanceView(Tk):
         self.container_frame = Frame(self, height=50, bg="#D3D3D3")
         self.container_frame.pack(fill="x")
 
-        cards_frame = Frame(self)
-        cards_frame.pack(fill="both", expand=True)
+        scrollable_frame = Frame(self)
+        scrollable_frame.pack(fill="both", expand=True)
 
-        card_in_row = 3  
+        canvas = Canvas(scrollable_frame, borderwidth=0, highlightthickness=0)
+        canvas.pack(side="left", fill="both", expand=True)
+
+        vsb = ttk.Scrollbar(scrollable_frame, orient="vertical", command=canvas.yview)
+        vsb.pack(side="right", fill="y")
+        canvas.configure(yscrollcommand=vsb.set)
+
+        self.cards_frame = Frame(canvas)
+        canvas.create_window((0, 0), window=self.cards_frame, anchor="nw")
+
+        def on_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        self.cards_frame.bind("<Configure>", on_configure)
+
+        card_in_row = 3
         for i in range(card_in_row):
-            cards_frame.columnconfigure(i, weight=1)
+            self.cards_frame.columnconfigure(i, weight=1)
+
 
         def create_transparent_overlay(size, alpha=120):
             overlay = Image.new("RGBA", size, (169, 169, 169, alpha))
             return ImageTk.PhotoImage(overlay)
 
-        overlay_image = create_transparent_overlay((350, 180))
+        overlay_image = create_transparent_overlay((380, 210))
 
         for i, card in enumerate(cards):
             (card_id, name, type_pocket, type_currency,
-            data_made, data_change, count_money, bg_color, bg_picture) = card
+            data_made, data_change, count_money, bg_color, bg_picture, status) = card
 
             if isinstance(data_made, str):
                 data_made_dt = datetime.strptime(data_made, "%d-%m-%Y")
             else:
                 data_made_dt = data_made
 
-            date_now = datetime.now()
-
-            card_frame = Frame(cards_frame, width=350, height=180, bg=bg_color)
+            card_frame = Frame(self.cards_frame, width=380, height=210, bg=bg_color)
             card_frame.card_id = card_id
             card_frame.bind("<Button-1>", lambda event, card_frame=card_frame: self.on_card_click(card_frame.card_id))
-            card_frame.grid(row=i // card_in_row, column=i % card_in_row, padx=10, pady=10)
+            row = i // card_in_row
+            col = i % card_in_row
+            card_frame.grid(row=row, column=col, padx=30, pady=30, sticky="nsew")
+            self.cards_frame.rowconfigure(row, weight=1)
 
-            canvas = Canvas(card_frame, width=350, height=180, bg=bg_color, bd=0, highlightthickness=0)
-            canvas.place(relx=0, rely=0, anchor="nw")
+            canvas_card = Canvas(card_frame, width=380, height=210, bg=bg_color, bd=0, highlightthickness=0)
+            canvas_card.place(relx=0, rely=0, anchor="nw")
 
             text_color = "white"
 
             if bg_picture:
                 try:
                     image = Image.open(bg_picture)
-                    target_size = (350, 180)
-                    image = ImageOps.fit(image, target_size, method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+                    image = ImageOps.fit(image, (380, 210), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
                     text_color = self.get_inverse_color(image)
                     background_image = ImageTk.PhotoImage(image)
-                    canvas.create_image(0, 0, image=background_image, anchor="nw")
+                    canvas_card.create_image(0, 0, image=background_image, anchor="nw")
                     card_frame.image = background_image
                 except Exception as e:
                     print(f"Error loading image: {e}")
 
             if name:
-                canvas.create_text(20, 35, text=name, fill=text_color, font=("Arial", 12, "bold"), anchor="w")
+                canvas_card.create_text(25, 35, text=name, fill=text_color, font=("Arial", 15, "bold"), anchor="w")
             if data_made:
-                formatted_date = data_made_dt.strftime("%d-%m-%Y")  
-                canvas.create_text(20, 75, text=formatted_date, fill=text_color, font=("Arial", 10), anchor="w")
+                formatted_date = data_made_dt.strftime("%d-%m-%Y")
+                canvas_card.create_text(25, 75, text=formatted_date, fill=text_color, font=("Arial", 13), anchor="w")
             if count_money:
                 formatted_balance = self.format_balance(count_money) if count_money != 0 else "0"
-                canvas.create_text(330, 160, text=f"{formatted_balance} {type_currency}", fill=text_color, font=("Arial", 10), anchor="e")
+                canvas_card.create_text(360, 190, text=f"{formatted_balance} {type_currency}", fill=text_color, font=("Arial", 13), anchor="e")
 
-            if date_now > data_made_dt:
-                canvas.create_image(0, 0, image=overlay_image, anchor="nw")
+            if status is None:
+                canvas_card.create_image(0, 0, image=overlay_image, anchor="nw")
                 card_frame.overlay_image = overlay_image
 
-            canvas.bind("<Button-1>", lambda event, card_frame=card_frame: self.on_card_click(card_frame.card_id))
+            canvas_card.bind("<Button-1>", lambda event, c_id=card_id: self.on_card_click(c_id))
 
 
     def add_personal_transactoin(self,name_curryncy):
@@ -901,7 +983,7 @@ class FinanceView(Tk):
                     selected_categires_id = categorie[0]
                     break
             filtered_subcategories = [name for _, name, categorie_id in subcategory_list if categorie_id == selected_categires_id]
-            self.selected_subcategires.set("Выбор категории")  
+            self.selected_subcategires.set("Выбор подкатегории")  
             self.namesubcategorie_menu['menu'].delete(0, 'end')  
             for subcategories in filtered_subcategories:
                 self.namesubcategorie_menu['menu'].add_command(label=subcategories, command=tk._setit(self.selected_subcategires, subcategories))
@@ -972,12 +1054,17 @@ class FinanceView(Tk):
         self.table_frame = Frame(self.new_window)
         self.table_frame.pack(fill="both", expand=False)
         card_name_currency = self.controller_root.update_card_name_currency()
-        self.add_personal_transaction = Button(
-            self.container_frame,
-            text="+",
-            command=lambda: self.add_personal_transactoin(card_name_currency)
-        )
-        self.add_personal_transaction.grid(column=0, columnspan=1, pady=2, sticky="e")
+
+        add_tr_icon = PhotoImage(file="images/icons_for_personal_card/xplus.png")  
+        edit_delete_icon = PhotoImage(file="images/icons_for_personal_card/settings.png")  
+        self.edit_delete_button = tk.Button(self.container_frame, image=edit_delete_icon, command=lambda: self.controller_root.show_card_by_name(card_name_currency[0][0]))
+        self.edit_delete_button.image = edit_delete_icon  
+        self.edit_delete_button.grid(column=0, row=0, pady=2, padx=5, sticky="w")
+
+        self.add_tr_button = tk.Button(self.container_frame, image=add_tr_icon, command=lambda: self.add_personal_transactoin(card_name_currency))
+        self.add_tr_button.image = add_tr_icon  
+        self.add_tr_button.grid(column=1, row=0, pady=2, padx=5, sticky="w")
+
 
         vsb = ttk.Scrollbar(self.new_window, orient="vertical")
         vsb.pack(side="right", fill="y")
@@ -1017,6 +1104,174 @@ class FinanceView(Tk):
         self.new_window.protocol("WM_DELETE_WINDOW", self.controller_root.close_transaction_personal)
 
 
+    def choice_edit_delete_card(self, card):
+        if not card:
+            self.create_middle_window()
+            label = ttk.Label(self.new_window, width=30, text="Карта не найдена", font=("Arial", 16))
+            label.pack()
+            return
+
+        self.create_middle_window()
+
+        (card_id, name, type_pocket, type_currency,
+        data_made, data_change, count_money, bg_color, bg_picture, status) = card
+
+        CARD_WIDTH = 420
+        CARD_HEIGHT = 240
+
+        card_frame = Frame(self.new_window, width=CARD_WIDTH, height=CARD_HEIGHT, bg=bg_color)
+        card_frame.pack(padx=30, pady=10)
+
+        canvas_card = Canvas(card_frame, width=CARD_WIDTH, height=CARD_HEIGHT, bg=bg_color, bd=0, highlightthickness=0)
+        canvas_card.place(x=0, y=0)
+
+        text_color = "white"
+        entry_bg_color = bg_color
+
+        if bg_picture:
+            image = Image.open(bg_picture)
+            if image.mode != "RGB":
+                image = image.convert("RGB")
+
+            image = ImageOps.fit(image, (CARD_WIDTH, CARD_HEIGHT), method=Image.Resampling.LANCZOS)
+            stat = ImageStat.Stat(image)
+            r, g, b = map(int, stat.mean[:3])
+            entry_bg_color = f"#{r:02x}{g:02x}{b:02x}"
+            brightness = r * 0.299 + g * 0.587 + b * 0.114
+            text_color = "black" if brightness > 127 else "white"
+
+            background_image = ImageTk.PhotoImage(image)
+            canvas_card.create_image(0, 0, image=background_image, anchor="nw")
+            card_frame.image = background_image
+
+        if status is None:
+            overlay = Image.new("RGBA", (CARD_WIDTH, CARD_HEIGHT), (169, 169, 169, 100))
+            overlay_img = ImageTk.PhotoImage(overlay)
+            canvas_card.create_image(0, 0, image=overlay_img, anchor="nw")
+            card_frame.overlay = overlay_img
+
+        entry_style = {
+            "font": ("Arial", 14, "bold"),
+            "fg": text_color,
+            "bg": entry_bg_color,
+            "bd": 0,
+            "highlightthickness": 0,
+            "insertbackground": text_color
+        }
+
+        def validate_date_input(event=None):
+            content = entry_date.get()
+            digits = ''.join(filter(str.isdigit, content))[:8]
+
+            day = month = year = ''
+            if len(digits) >= 2:
+                day = digits[:2]
+            elif len(digits) > 0:
+                day = digits[:1]
+
+            if len(digits) >= 4:
+                month = digits[2:4]
+            elif len(digits) > 2:
+                month = digits[2:3]
+
+            if month and not (1 <= int(month) <= 12):
+                month = ''
+
+            if len(digits) >= 5:
+                year = digits[4:]
+
+            formatted = day
+            if month:
+                formatted += '-' + month
+            elif len(digits) > 2:
+                formatted += '-'
+            if year:
+                formatted += '-' + year
+
+            entry_date.delete(0, 'end')
+            entry_date.insert(0, formatted)
+
+            if len(digits) == 8 and month and day:
+                try:
+                    d, m, y = int(day), int(month), int(year)
+                    datetime(y, m, d)  
+                except ValueError:
+                    try:
+                        max_day = (datetime(y if m < 12 else y + 1, (m % 12) + 1, 1) - timedelta(days=1)).day
+                        d = min(d, max_day)
+                        corrected = f"{d:02}-{m:02}-{y:04}"
+                        entry_date.delete(0, 'end')
+                        entry_date.insert(0, corrected)
+                    except:
+                        pass  
+
+        entry_name = Entry(card_frame, **entry_style)
+        entry_name.insert(0, name)
+        entry_name.place(x=25, y=35, width=200)
+
+        entry_date = Entry(card_frame, **entry_style)
+        formatted_date = data_made if isinstance(data_made, str) else data_made.strftime("%d-%m-%Y")
+        entry_date.insert(0, formatted_date)
+        entry_date.place(x=25, y=75, width=120)
+        entry_date.bind("<KeyRelease>", validate_date_input)
+
+        entry_money = Entry(card_frame, **entry_style, justify="right")
+        entry_money.insert(0, str(count_money))
+        entry_money.place(x=330, y=210, width=100, anchor="e")
+
+        currency_var = StringVar(value=type_currency)
+        currency_menu = OptionMenu(card_frame, currency_var, "UAH", "EUR", "USD")
+        currency_menu.config(font=("Arial", 10), bg=entry_bg_color, fg=text_color, highlightthickness=0)
+        currency_menu["menu"].config(font=("Arial", 10))
+        currency_menu.place(x=340, y=210, width=60, anchor="w")
+
+        type_var = StringVar(value=type_pocket)
+        type_menu = OptionMenu(card_frame,type_var, "Debit", "Kredit")
+        type_menu.config(font=("Arial", 10), bg=entry_bg_color, fg=text_color, highlightthickness=0)
+        type_menu["menu"].config(font=("Arial", 10))
+        type_menu.place(x=280, y=35, width=120)
+
+        button_frame = Frame(self.new_window, bg="#f0f0f0")
+        button_frame.pack(pady=10)
+        def validate_and_update():
+            new_name = entry_name.get().strip()
+            new_type = type_var.get().strip()
+            new_currency = currency_var.get().strip()
+            new_money = entry_money.get().strip()
+            new_date = entry_date.get().strip()
+
+            if not new_name or not new_money or not new_date:
+                messagebox.showerror("Ошибка", "Заполните все поля")
+                return
+
+            try:
+                parsed_date = datetime.strptime(new_date, "%d-%m-%Y")
+
+                formatted_date_for_db = parsed_date.strftime("%Y-%m-%d")
+
+                float_money = float(new_money)
+
+            except ValueError:
+                messagebox.showerror("Ошибка", "Неверный формат даты (ДД-ММ-ГГГГ)")
+                return
+            except Exception:
+                messagebox.showerror("Ошибка", "Неверное значение")
+                return
+
+            self.controller_root.try_edit_card(
+                card_id, new_name, new_type, new_currency, float_money, formatted_date_for_db
+            )
+
+            messagebox.showinfo("Успех", "Карта обновлена")
+            self.new_window.destroy()
+
+        edit_btn = Button(button_frame, text="Редактировать", command=validate_and_update, bg="#90EE90", font=("Arial", 10), width=20)
+        edit_btn.pack(side="left", padx=10)
+
+        delete_btn = Button(button_frame, text="Удалить", command=lambda card_id = card_id: self.controller_root.try_delete_card(card_id), bg="#FF7F7F", font=("Arial", 10), width=20)
+        delete_btn.pack(side="right", padx=10)
+
+
     def fill_treeview(self, tr_card):
         for row in self.tree.get_children():
             self.tree.delete(row)
@@ -1046,7 +1301,6 @@ class FinanceView(Tk):
         list_counterparty = self.controller_root.update_counterparty_list()
         list_category = self.controller_root.update_category_list()
         list_subcategory = self.controller_root.update_subcategory_list()
-        
 
         categories_by_counterparty = {}
         for category in list_category:
@@ -1065,7 +1319,6 @@ class FinanceView(Tk):
 
         self.tree_frame = Frame(self)
         self.tree_frame.pack(fill="both", expand=True, padx=10, pady=5)
-
 
         self.tree_frame.grid_rowconfigure(0, weight=1)  
         self.tree_frame.grid_columnconfigure(0, weight=1, uniform="columns")  
@@ -1090,7 +1343,6 @@ class FinanceView(Tk):
         label = Label(self.white_column, bg="white")
         label.pack(fill="both", expand=True)
 
-
         left = True
 
         for counterparty_id, counterparty_name in list_counterparty:
@@ -1107,7 +1359,6 @@ class FinanceView(Tk):
                         for subcategory in subcategories_by_category[category_id]:
                             subcategory_id, subcategory_name = subcategory[0], subcategory[1]
                             subcategory_node = target_tree.insert(category_node, "end", text=subcategory_name, values=subcategory_id, tags = "Подкатегория", open=False)
-
 
 
         self.tree_left.bind("<<TreeviewSelect>>", self.on_item_selected)
@@ -1128,7 +1379,7 @@ class FinanceView(Tk):
         item = tree.item(selected_item)  
         item_text = item["text"]  
         item_id = item["values"][0]
-        
+
         for widget in self.white_column.winfo_children():
             widget.destroy()
 
@@ -1171,28 +1422,27 @@ class FinanceView(Tk):
         bottom_frame.grid_columnconfigure(1, weight=1)
         bottom_frame.grid_columnconfigure(2, weight=1)
 
-        tk.Label(col1, font=("Arial", 12, "bold"), bg="white").grid(row=0, column=0, sticky="w")
-        tk.Label(col2, font=("Arial", 12, "bold"), bg="white").grid(row=0, column=0, sticky="w")
-        tk.Label(col3, font=("Arial", 12, "bold"), bg="white").grid(row=0, column=0, sticky="w")
-
         edit_icon = PhotoImage(file="images/image_buttom/change.png")  
         delete_icon = PhotoImage(file="images/image_buttom/dustbin.png")  
 
-        counteragent_data = (item_id, item_text[0:-2])
+        counteragent_data = [item_id, item_text]
+        if "▼" in counteragent_data[1] or "▶" in counteragent_data[1]:
+            counteragent_data[1] = counteragent_data[1][0:-1]
+        
 
         button_frame = tk.Frame(header_frame, bg="white")
         button_frame.pack(side="right")
+        
 
-        edit_button_counteragent = tk.Button(button_frame, image=edit_icon, command=lambda: self.edit_category_subcategory(counteragent_data))
+        edit_button_counteragent = tk.Button(button_frame, image=edit_icon, command=lambda data=counteragent_data: self.open_edit_window(data,item_type))
         edit_button_counteragent.image = edit_icon  
-        edit_button_counteragent.pack(side=TOP,anchor="ne")
+        edit_button_counteragent.grid(row=0, column=1, sticky="ne", padx=5, pady=5)  
 
-        delete_button_counteragent = tk.Button(button_frame, image=delete_icon, command=lambda: self.delete_category_subcategory(counteragent_data))
+        delete_button_counteragent = tk.Button(button_frame, image=delete_icon, command=lambda data=counteragent_data: self.open_delete_window(data,item_type))
         delete_button_counteragent.image = delete_icon  
-        delete_button_counteragent.pack(side=TOP,anchor="ne")
+        delete_button_counteragent.grid(row=1, column=1, sticky="ne", padx=5, pady=5)
 
-        row_index = 1  
-
+        row_index = 1
         if related_data:
             for i, data in enumerate(related_data):
                 if i % 3 == 0:
@@ -1205,32 +1455,71 @@ class FinanceView(Tk):
                 label = tk.Label(target_col, text=data[1], bg="white", font=("Arial", 12))
                 label.grid(row=row_index, column=0, sticky="w", pady=5)
 
-                edit_button = tk.Button(target_col, image=edit_icon, command=lambda data=data: self.edit_category_subcategory(data))
+                if item_type == "Контрагент":
+                    edit_button = tk.Button(target_col, image=edit_icon, command=lambda data=data: self.open_edit_window(data,'Категория'))
+                    delete_button = tk.Button(target_col, image=delete_icon, command=lambda data=data:  self.open_delete_window(data,'Категория'))
+                elif item_type == "Категория":
+                    edit_button = tk.Button(target_col, image=edit_icon, command=lambda data=data: self.open_edit_window(data,'Подкатегория'))
+                    delete_button = tk.Button(target_col, image=delete_icon, command=lambda data=data:  self.open_delete_window(data,'Подкатегория'))
+
                 edit_button.image = edit_icon  
                 edit_button.grid(row=row_index, column=1, sticky="e", padx=5)
 
-                delete_button = tk.Button(target_col, image=delete_icon, command=lambda data=data: self.delete_category_subcategory(data))
                 delete_button.image = delete_icon  
                 delete_button.grid(row=row_index, column=2, sticky="e", padx=5)
 
                 row_index += 1 
-
         else:
             tk.Label(col1, text="Нет данных", bg="white", font=("Arial", 12)).grid(row=0, column=0, sticky="w")
 
 
+    def open_edit_window(self, data, type_item):
+        self.create_middle_window()
+        edit_window = self.new_window  
+
+        label = tk.Label(edit_window, text=f"Введите новое имя контрагента:")
+        label.pack(padx=10, pady=5)
+
+        entry = tk.Entry(edit_window)
+        entry.insert(0, data[1])  
+        entry.pack(padx=10, pady=5)
+
+        def submit_edit():
+            new_name = entry.get()  
+            if new_name:  
+
+                self.controller_root.submit_edit_conagent_category_subcategory((data[0], new_name), type_item)
+                edit_window.destroy()  
+                
+            else:
+                messagebox.showerror("Ошибка", "Имя не может быть пустым!")
+
+        submit_button = tk.Button(edit_window, text="Сохранить", command=submit_edit)
+        submit_button.pack(padx=10, pady=5)
 
 
+    def open_delete_window(self, data, type_item):
+        self.create_middle_window()
+        delete_window = self.new_window  
 
-    def edit_category_subcategory(self, data):
-        print(f"Редактировать: {data}")
+        label = tk.Label(delete_window, text=f"Вы уверены, что хотите удалить {data[1]}?")
+        label.pack(padx=10, pady=5)
 
+        def confirm_delete():
 
+            deleted = self.controller_root.submit_delete_conagent_category_subcategory(data, type_item)
 
-    def delete_category_subcategory(self, data):
-        print(f"Удалить: {data}")
+            if deleted:
+                messagebox.showinfo("Удаление", "Удалено успешно.")
+            else:
+                messagebox.showwarning("Предупреждение", "Невозможно удалить — есть связь или транзакции.")
+            delete_window.destroy()
 
+        confirm_button = tk.Button(delete_window, text="Удалить", command=confirm_delete)
+        confirm_button.pack(side="left", padx=10, pady=5)
 
+        cancel_button = tk.Button(delete_window, text="Отмена", command=delete_window.destroy)
+        cancel_button.pack(side="right", padx=10, pady=5)
 
 
     def toggle_arrow(self, event, old_symbol, new_symbol, tree):
@@ -1241,28 +1530,26 @@ class FinanceView(Tk):
 
 
 
-
-"""
-5.СДЕЛАТЬ УДАЛЕНИЕ КОНТР,КАТЕГОР,ПОДКАТЕГОР
-6.СДЕЛАТЬ РЕДАКТИРОВАНИЕ КОНТР,КАТЕГОР,ПОДКАТЕГОР
-
-"""
-
-
-
 """
 
 ОСТАЛОСЬ ЧТО БЫ ПЕРЕЙТИ
 
-Закончить удаление и редактирваоние категорий и подкатегорий
-Добавить кнопку удаления и редактирования контрагента
-ДОБАВИТЬ В добавление категории или подкатегории что бы подтягивало контрагента или категорию
-Нормальное размещение кнопки добавления в ПЕРСОНАЛЬНЫЕ ТРАНЗАКЦИИ
-УДАЛЕНИЕ КАРТЫ
+Убрать Захват транзакций после нажатия
 
 
+ПЕРСОНАЛЬНЫЕ КАРТЫ ДОБАВИТЬ МАССОВОЕ УДАЛЕНИЕ ТРАНЗАКЦИЙ
+
+Добавить что бы пользователь не мог добавлять имя той же карты если оно существует
 
 
+УДАЛЕНИЕ КАРТЫ:
+ЕСЛИ СРОК ИСТЕК ТО МОЖНО УДАЛИТЬ(ДАЖЕ ЕСЛИ НА НЕЙ ЕСТЬ ТРАНЗАКЦИИ), НО ПРИУСЛОВИИ ТОГО ЧТО НА БАЛАНСЕ 0
+ЕСЛИ ЖЕ НА БАЛАНСЕ ОТРИЦАТЕЛЬНАЯ СУММА ИЛИ ЖЕ ПОЛОЖИТЕЛЬНА ТО  КАРТА НЕ УДАЛИТСЯ 
+
+ЕСЛИ КАРТА НОВАЯ И НА НЕЙ НЕТУ ТРАНЗАКЦИЙ ТО МОЖНО УДАЛИТЬ 
+
+
+ДОДЕЛАТЬ
+И
+ЧТО БЫ КАРТЫ РАСТЯГИВАЛИСЬ АВТОМАТИСЧЕСКИ В ЗАВИСИМОСТИ ОТ РАЗМЕРА ЭКРАНА
 """
-
-
