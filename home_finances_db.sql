@@ -51,8 +51,9 @@ CREATE TABLE `categories` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(64) NOT NULL,
   `parent_id` int NOT NULL,
+  `user_id` int NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -61,7 +62,7 @@ CREATE TABLE `categories` (
 
 LOCK TABLES `categories` WRITE;
 /*!40000 ALTER TABLE `categories` DISABLE KEYS */;
-INSERT INTO `categories` VALUES (1,'Покупки',2),(2,'Планшет',3),(3,'Телефон',4),(5,'Повербанк',4),(6,'Одежда',5),(7,'Банан',1),(9,'Скутер',4),(10,'Браслет',4),(11,'Окорочка',6),(12,'Молоко',6),(13,'Покупки',6),(14,'ПриватБанк',8),(15,'Монобанк',8),(16,'Ощадбанк',8),(17,'Райффайзен Банк',8);
+INSERT INTO `categories` VALUES (2,'Планшет',3,13),(3,'Телефон',4,13),(5,'Повербанк',4,13),(6,'Одежда',5,13),(9,'Скутер',4,13),(10,'Браслет',4,13),(11,'Окорочка',6,13),(12,'Молоко',6,13),(14,'ПриватБанк',8,13),(15,'Монобанк',8,13),(16,'Ощадбанк',8,13),(17,'Райффайзен Банк',8,13),(34,'Eat',16,15),(35,'Продукти',17,16),(36,'Рітейл / Продукти',18,16),(41,'Фармацевтика / Медицина',23,16),(42,'Фармацевтика / Медицина',22,16),(43,'Будівництво / Матеріали',19,16),(44,'ІТ / Послуги',25,16),(45,'Єлектроніка',26,16),(46,'Переферія',26,16),(47,'Запчастини',26,16),(48,'АТБ',27,17),(49,'Фора',27,17),(50,'Варус',27,17);
 /*!40000 ALTER TABLE `categories` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -75,8 +76,9 @@ DROP TABLE IF EXISTS `counterparties`;
 CREATE TABLE `counterparties` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(64) NOT NULL,
+  `user_id` int NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=28 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -85,7 +87,7 @@ CREATE TABLE `counterparties` (
 
 LOCK TABLES `counterparties` WRITE;
 /*!40000 ALTER TABLE `counterparties` DISABLE KEYS */;
-INSERT INTO `counterparties` VALUES (1,'Ашан'),(2,'Фора'),(3,'Фокстрот'),(4,'Розетка'),(5,'DreamTown'),(6,'Varus'),(8,'Банки');
+INSERT INTO `counterparties` VALUES (3,'Фокстрот',13),(4,'Розетка',13),(5,'DreamTown',13),(6,'Varus',13),(8,'Банк',13),(16,'Glovo',15),(17,'АТБ-Маркет',16),(18,'Procter & Gamble Україна',16),(19,'Епіцентр К',16),(22,'Дарниця',16),(23,'Аптека АНЦ',16),(25,'DeNovo',16),(26,'Happy-pc',16),(27,'Магазини',17);
 /*!40000 ALTER TABLE `counterparties` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -106,8 +108,10 @@ CREATE TABLE `pocket` (
   `count_money` decimal(16,2) DEFAULT NULL,
   `bg_color` varchar(32) DEFAULT NULL,
   `bg_picture` varchar(255) DEFAULT NULL,
+  `status` tinyint(1) DEFAULT NULL,
+  `user_id` int NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -116,7 +120,7 @@ CREATE TABLE `pocket` (
 
 LOCK TABLES `pocket` WRITE;
 /*!40000 ALTER TABLE `pocket` DISABLE KEYS */;
-INSERT INTO `pocket` VALUES (2,'privatcard','debit','EUR','2030-12-31 00:00:00',NULL,247733.00,'#e35e78',NULL),(3,'japancard','debit','EUR','2024-12-06 00:00:00',NULL,27478.00,NULL,'C://Finans_programm/images/background_card\\cat.png'),(4,'local card','kredit','UAH','2035-12-31 00:00:00',NULL,-2850.00,NULL,'C://Finans_programm/images/background_card\\LOGO_2.png'),(5,'PC','debit','UAH','2021-06-07 00:00:00',NULL,29985754.33,'#ff0000',NULL),(6,'visaUSD','debit','USD','2004-04-25 00:00:00',NULL,7800.00,NULL,'C://Finans_programm/images/background_card\\logo_py.png'),(9,'Server card','debit','USD','2011-01-13 00:00:00',NULL,16090.00,'#fbff42',NULL);
+INSERT INTO `pocket` VALUES (2,'privatcard','debit','EUR','2030-12-31 00:00:00',NULL,130643.00,'#e35e78',NULL,1,13),(3,'japancard','debit','EUR','2024-12-06 00:00:00',NULL,27478.00,NULL,'C://Finans_programm/images/background_card\\cat.png',NULL,13),(4,'local card','kredit','UAH','2035-12-31 00:00:00',NULL,-41340.00,NULL,'C://Finans_programm/images/background_card\\LOGO_2.png',1,13),(5,'PC','debit','UAH','2021-06-07 00:00:00',NULL,29985754.33,'#ff0000',NULL,NULL,13),(6,'visaUSD','debit','USD','2004-04-25 00:00:00',NULL,-42225.00,NULL,'C://Finans_programm/images/background_card\\logo_py.png',NULL,13),(9,'Server card','debit','USD','2011-01-13 00:00:00',NULL,56090.00,'#fbff42',NULL,NULL,13),(10,'Maincard','debit','UAH','2004-04-25 00:00:00',NULL,10000.00,'#ff00ff',NULL,NULL,13),(12,'Card for cars','debit','EUR','2026-04-25 00:00:00','2025-05-02 17:29:46',10000.00,NULL,'C://Finans_programm/images/background_card\\nier.jfif',1,13),(16,'ABIBA','debit','UAH','2025-04-11 00:00:00',NULL,-13889.00,'#b68b8b',NULL,NULL,13),(18,'TC','Debit','UAH','2025-04-25 00:00:00',NULL,15000.00,'#ff4246',NULL,NULL,14),(21,'Ira','Debit','EUR','2025-05-21 00:00:00',NULL,101100.00,'#fc238a',NULL,NULL,13),(22,'Defolt','Debit','EUR','2025-05-30 00:00:00',NULL,9700.00,'#918bb6',NULL,NULL,15),(23,'Universal','Debit','USD','2025-05-30 00:00:00',NULL,7396.00,'#ca7777',NULL,NULL,16),(24,'Privat Universal','Debit','UAH','2004-04-25 00:00:00',NULL,5555.00,NULL,'C://Finans_programm/images/background_card\\nier.jfif',NULL,16),(25,'Universal','Debit','UAH','2030-05-31 00:00:00',NULL,50000.00,NULL,'C://Finans_programm/images/background_card\\cat.png',1,17),(26,'Mains for cars','Debit','UAH','2027-05-20 00:00:00','2025-05-28 22:21:11',9600.00,NULL,'C://Finans_programm/images/background_card\\nier.jfif',1,17),(29,'B','Debit','EUR','2025-05-30 00:00:00','2025-05-28 23:29:04',-130.00,'#f99999',NULL,NULL,17),(30,'B2','Debit','UAH','2025-05-22 00:00:00',NULL,212.00,'#c77aa5',NULL,NULL,17);
 /*!40000 ALTER TABLE `pocket` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -131,8 +135,9 @@ CREATE TABLE `subcategory` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(128) NOT NULL,
   `parent_id` int NOT NULL,
+  `user_id` int NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -141,7 +146,7 @@ CREATE TABLE `subcategory` (
 
 LOCK TABLES `subcategory` WRITE;
 /*!40000 ALTER TABLE `subcategory` DISABLE KEYS */;
-INSERT INTO `subcategory` VALUES (1,'Процессор',2),(2,'Зарядка',9),(3,'Бусины',10),(4,'Футболка',6),(5,'Шорты',6),(6,'Эмблема',6),(7,'Электроэнергия',14),(8,'Газ',14),(9,'Вода',14),(10,'Интернет',14),(11,'Аккамулятор',5);
+INSERT INTO `subcategory` VALUES (1,'Процессор',2,13),(2,'Зарядка',9,13),(3,'Бусины',10,13),(4,'Футболка',6,13),(5,'Шорты',6,13),(6,'Эмблема',6,13),(7,'Электроэнергия',14,13),(8,'Газ',14,13),(9,'Вода',14,13),(10,'Интернет',14,13),(11,'Аккамулятор',5,13),(32,'Pizza',34,15),(33,'KFC',34,15),(34,'MacDonalds',34,15),(35,'Продуктові мережі',35,16),(36,'Побутова хімія\n\n',36,16),(41,'Ліки',41,16),(42,'Виробники ліків',42,16),(43,'Будівельні супермаркети',43,16),(44,'Хмарні сервіси',44,16),(45,'Відеокарта',47,16),(46,'Процесор',47,16),(47,'Опреративна пам\'ять',47,16),(48,'Термопаста',46,16),(49,'Навушники',45,16),(51,'Морозиво',48,17),(52,'Риба',50,17),(53,'Напої',49,17);
 /*!40000 ALTER TABLE `subcategory` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -162,8 +167,9 @@ CREATE TABLE `transactions` (
   `currency` varchar(50) NOT NULL,
   `card` varchar(255) NOT NULL,
   `data` date NOT NULL,
+  `user_id` int NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=112 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -172,7 +178,7 @@ CREATE TABLE `transactions` (
 
 LOCK TABLES `transactions` WRITE;
 /*!40000 ALTER TABLE `transactions` DISABLE KEYS */;
-INSERT INTO `transactions` VALUES (20,'Банки','ПриватБанк','Электроэнергия','Расход',-10000.00,'USD','visaUSD','2025-01-31'),(21,'Фокстрот','Планшет','Процессор','Расход',-1700.00,'EUR','privatcard','2025-01-26'),(22,'Банки','ПриватБанк','Электроэнергия','Доход',10000.00,'UAH','local card','2025-01-27'),(23,'Банки','ПриватБанк','Электроэнергия','Доход',150.00,'EUR','privatcard','2024-07-01'),(24,'Розетка','Скутер','Зарядка','Расход',-1500.67,'UAH','PC','2019-10-21'),(25,'DreamTown','Одежда','Шорты','Расход',-6000.00,'EUR','japancard','2025-01-06'),(26,'Розетка','Браслет','Бусины','Доход',500.00,'EUR','japancard','2025-01-05'),(27,'DreamTown','Одежда','Шорты','Доход',500.00,'EUR','japancard','2025-01-12'),(28,'Фокстрот','Планшет','Процессор','Доход',50.00,'EUR','privatcard','2025-01-25'),(29,'Банки','ПриватБанк','Газ','Расход',-155.00,'UAH','PC','2025-01-28'),(30,'Розетка','Браслет','Бусины','Расход',-777.00,'EUR','privatcard','2025-01-22'),(31,'DreamTown','Одежда','Футболка','Доход',8787.00,'EUR','japancard','2025-01-27'),(32,'Фокстрот','Планшет','Процессор','Расход',-9990.00,'UAH','PC','2025-01-28'),(33,'Банки','ПриватБанк','Вода','Расход',-20.00,'EUR','japancard','2025-02-05'),(34,'Банки','ПриватБанк','Газ','Расход',-19.00,'EUR','japancard','2025-02-28'),(35,'DreamTown','Одежда','Шорты','Расход',-1000.00,'UAH','PC','2025-02-03'),(36,'Розетка','Скутер','Зарядка','Доход',500.00,'UAH','PC','2025-02-03'),(37,'Розетка','Браслет','Бусины','Расход',-1000.00,'UAH','local card','2025-02-03'),(38,'Розетка','Скутер','Зарядка','Расход',-700.00,'USD','visaUSD','2025-02-24'),(39,'Розетка','Скутер','Зарядка','Расход',-800.00,'USD','Server card','2025-01-31'),(40,'DreamTown','Одежда','Шорты','Доход',900.00,'USD','Server card','2024-10-28'),(41,'Банки','ПриватБанк','Интернет','Доход',890.00,'USD','Server card','2025-02-03'),(42,'DreamTown','Одежда','Футболка','Расход',-600.00,'USD','Server card','2025-02-02'),(43,'DreamTown','Одежда','Футболка','Доход',500.00,'USD','Server card','2025-02-04'),(44,'Банки','ПриватБанк','Газ','Расход',-90.00,'USD','Server card','2025-01-14'),(45,'Банки','ПриватБанк','Вода','Расход',-10.00,'USD','Server card','2025-02-03'),(47,'DreamTown','Одежда','Эмблема','Расход',-700.00,'USD','Server card','2025-01-07'),(48,'Розетка','Скутер','Зарядка','Расход',-9000.00,'UAH','local card','2025-02-03'),(49,'DreamTown','Одежда','Шорты','Расход',-1000.00,'UAH','local card','2025-02-03'),(51,'DreamTown','Одежда','Шорты','Доход',600.00,'UAH','PC','2025-02-07'),(52,'DreamTown','Одежда','Шорты','Доход',500.00,'UAH','local card','2025-02-07'),(53,'Банки','ПриватБанк','Газ','Расход',-320.00,'EUR','japancard','2025-02-26'),(54,'DreamTown','Одежда','Эмблема','Расход',-100.00,'EUR','japancard','2025-02-26'),(55,'Банки','ПриватБанк','Вода','Расход',-2500.00,'UAH','local card','2025-02-26'),(56,'Розетка','Браслет','Бусины','Доход',150.00,'UAH','local card','2025-02-26'),(57,'DreamTown','Одежда','Футболка','Расход',-1500.00,'UAH','local card','2025-02-26');
+INSERT INTO `transactions` VALUES (96,'АТБ-Маркет','Продукти','Продуктові мережі','Витрата',-100.00,'USD','Universal','2025-05-09',16),(97,'Епіцентр К','Будівництво / Матеріали','Будівельні супермаркети','Витрата',-450.00,'USD','Universal','2025-05-17',16),(98,'Аптека АНЦ','Фармацевтика / Медицина','Ліки','Витрата',-55.00,'USD','Universal','2025-05-21',16),(99,'DeNovo','ІТ / Послуги','Хмарні сервіси','Дохід',350.00,'USD','Universal','2025-05-01',16),(100,'Дарниця','Фармацевтика / Медицина','Виробники ліків','Дохід',700.00,'USD','Universal','2025-05-02',16),(101,'Happy-pc','Єлектроніка','Навушники','Витрата',-999.00,'USD','Universal','2025-05-28',16),(102,'Happy-pc','Запчастини','Відеокарта','Витрата',-1500.00,'USD','Universal','2024-05-22',16),(103,'Happy-pc','Запчастини','Опреративна пам\'ять','Витрата',-550.00,'USD','Universal','2025-01-27',16),(105,'Магазини','Фора','Напої','Витрата',-500.00,'USD','Mains for cars','2025-05-05',17),(106,'Магазини','АТБ','Морозиво','Дохід',100.00,'USD','Mains for cars','2025-05-30',17),(110,'Магазини','Фора','Напої','Витрата',-100.00,'UAH','B2','2025-05-28',17),(111,'Магазини','Фора','Напої','Витрата',-200.00,'EUR','B','2025-05-28',17);
 /*!40000 ALTER TABLE `transactions` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -212,7 +218,7 @@ CREATE TABLE `user` (
   `gmail` varchar(100) NOT NULL,
   `password` varchar(100) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -221,7 +227,7 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
-INSERT INTO `user` VALUES (12,'Vitaly','vitaly01@gmail.com','ed35d1c4595bd1ae6ec00a1beb87853243b7c6ce'),(13,'Vitaly ','vitaly02@gmail.com','0860b2f26999ef263892f6d9eaa3106ab48a9289');
+INSERT INTO `user` VALUES (12,'Vitaly','vitaly01@gmail.com','ed35d1c4595bd1ae6ec00a1beb87853243b7c6ce'),(13,'Vitaly ','vitaly02@gmail.com','0860b2f26999ef263892f6d9eaa3106ab48a9289'),(14,'Vitaly','vital@gmail.com','d57483241b6081adfde21e99348291ea0ac90049'),(15,'Gregor','gregor@gmail.com','779f6618b4a4c343a154c5e26bb842e4481dd938'),(16,'Andry','Andry@gmail.com','bace61870e44978aef5992b3ee0bb343dada4a68'),(17,'Nady','Nady@gmail.com','3586838fc465c3a4ef815eb7cfd6299d464a55fd'),(20,'Vita','Vita@gmail.com','34b31896c29790716802793186af6a0695f72f12');
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -234,4 +240,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-03-03 18:18:45
+-- Dump completed on 2025-05-30 17:32:01
