@@ -4,7 +4,7 @@ class FinanceController:
     def __init__(self, model, view):
         self.model = model
         self.view = view
-        self.user_id = None #ID USER
+        self.user_id = None 
         self.view.window_reg()
         self.view.set_controller(self)
         self.view.submit_button_reg.config(command=self.submit_data_reg)
@@ -14,9 +14,9 @@ class FinanceController:
     def submit_data_reg(self):
         name, gmail, password, password_repeat = self.view.get_user_input_reg()
         result = self.model.model_registration(name, gmail, password, password_repeat)
-        if result == "Успешная реестрация":
+        if result == "Успішна реєстрація":
             self.view.clear_widgets()
-            self.view.window_log()
+            self.view.window_log(result)
             self.view.submit_button_log.config(command=self.submit_data_log_and_main)
         else:
             self.view.clear_widgets()
@@ -83,6 +83,9 @@ class FinanceController:
 
     def get_counterpart_info(self, counterpart_id):
         return self.model.select_counterpart_info(counterpart_id)
+    
+    def get_user_card_names(self):
+        return self.model.get_user_card_names(self.user_id)
 
 
     def add_new_card(self):
@@ -93,17 +96,16 @@ class FinanceController:
 
 
     def try_delete_card(self, card_id):
-
         result = self.model.can_delete_card(card_id)
         if result == None:
-            messagebox.showwarning("Невозможно удалить", "Карта не может быть удалена. Убедитесь, что:\n- Баланс равен 0\n- Срок действия истёк или нет транзакций")
+            messagebox.showwarning("Неможливо видалити", "Карта не може бути видалена. Переконайтеся, що: \n- Баланс дорівнює 0\n- Термін дії минув чи ні транзакцій")
 
         if result[0]:
-            confirm = messagebox.askyesno("Подтверждение", f"Вы уверены, что хотите удалить карту {result[1]}?")
+            confirm = messagebox.askyesno("Підтвердження", f"Ви впевнені, що хочете видалити карту {result[1]}?")
             if confirm:
                 pass
                 self.model.delete_card(card_id,result[1])
-                messagebox.showinfo("Удалено", "Карта успешно удалена.")
+                messagebox.showinfo("Видалено", "Карта успішно видалена.")
                 self.view.new_window.destroy()
                 self.view.refresh_cards()
 
@@ -115,7 +117,26 @@ class FinanceController:
 
     def add_transaction(self):
         counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date = self.view.get_transaction_information()
-        self.model.add_transaction(counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date, self.user_id)
+        if (
+            counteragent == 'Вибір Контрагента' or not counteragent or
+            category == 'Вибір Категорії' or not category or
+            subcategory == 'Вибір Підкатегорії' or not subcategory or
+            type_transaction == 'Вибір типу транзакції' or not type_transaction or
+            choisecard_menu == 'Вибір картки' or not choisecard_menu or
+            not amount.strip()
+        ):
+            messagebox.showerror("Помилка", "Будь ласка, заповніть усі поля.")
+            return
+
+        try:
+            amount_value = float(amount)
+            if amount_value <= 0:
+                raise ValueError
+        except ValueError:
+            messagebox.showerror("Помилка", "Сума має бути додатнім числом.")
+            return
+
+        self.model.add_transaction(counteragent, category, subcategory, type_transaction, amount_value, currency, choisecard_menu, date, self.user_id)
         self.view.new_window.destroy()
         self.view.refresh_transaction()
 
@@ -123,7 +144,7 @@ class FinanceController:
     def add_transaction_personal(self):
         counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date = self.view.get_transaction_information()
         self.model.add_transaction(counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date,self.user_id)
-        result = self.model.select_transaction_personal_id(self.actual_id)
+        result = self.model.select_transaction_personal_id(self.actual_id,self.user_id)
         self.view.refresh_personal_transaction(result)
 
 
@@ -152,10 +173,9 @@ class FinanceController:
         self.view.refresh_counteragents()
 
 
-
     def submit_update_personal_card_transaction(self, card_id):
         self.actual_id = card_id
-        result = self.model.select_transaction_personal_id(card_id)
+        result = self.model.select_transaction_personal_id(card_id,self.user_id)
         self.view.personal_transaction_card(result)
 
 
@@ -169,7 +189,7 @@ class FinanceController:
         result = self.view.edit_transaction()
         
         result = list(result)
-        if result[3] == 'Доход':
+        if result[3] == 'Дохід':
             result[4] = abs(float(result[4]))
         else:
             result[4] = -abs(float(result[4]))
@@ -180,19 +200,19 @@ class FinanceController:
             self.view.new_window.destroy()
             self.view.refresh_transaction()
         else:
-            result = self.model.select_transaction_personal_id(self.actual_id)
+            result = self.model.select_transaction_personal_id(self.actual_id,self.user_id)
             self.view.refresh_personal_transaction(result)
+
 
     def submit_delete_transaction(self,transaction_id):
         result = self.view.delete_transaction()
-
 
         self.model.delete_transaction(transaction_id)
         if result == 'main':
             self.view.new_window.destroy()
             self.view.refresh_transaction()
         else:
-            result = self.model.select_transaction_personal_id(self.actual_id)
+            result = self.model.select_transaction_personal_id(self.actual_id,self.user_id)
             self.view.refresh_personal_transaction(result)
 
 
@@ -204,16 +224,16 @@ class FinanceController:
             
             if type_item == "Контрагент":
                 self.model.update_counteragent(name, item_id)
-            elif type_item == "Категория":
+            elif type_item == "Категорія":
                 self.model.update_category(name, item_id)  
-            elif type_item == "Подкатегория":
+            elif type_item == "Підкатегорія":
                 self.model.update_subcategory(name, item_id)  
         else:
             if type_item == "Контрагент":
                 self.model.update_counteragent(name, item_id)
-            elif type_item == "Категория":
+            elif type_item == "Категорія":
                 self.model.update_category(name, item_id)  
-            elif type_item == "Подкатегория":
+            elif type_item == "Підкатегорія":
                 self.model.update_subcategory(name, item_id)  
 
         self.view.refresh_counteragents()
@@ -221,16 +241,14 @@ class FinanceController:
 
     def submit_delete_conagent_category_subcategory(self, data, type_item):
         item_id, name = data
-
         deleted = False
 
         if type_item == "Контрагент":
             deleted = self.model.delete_counteragent(name,item_id)
-        elif type_item == "Категория":
+        elif type_item == "Категорія":
             deleted = self.model.delete_category(name)
-        elif type_item == "Подкатегория":
+        elif type_item == "Підкатегорія":
             deleted = self.model.delete_subcategory(name)
-
         self.view.refresh_counteragents()
         return deleted
 
@@ -252,8 +270,6 @@ class FinanceController:
 
     def update_card_currency(self, selected_card):
         return self.model.select_currency_by_card(selected_card)
-    
-
 
 
     def update_counterparty_list(self):
@@ -284,4 +300,8 @@ class FinanceController:
     def show_card_by_name(self, card_name):
         card_data = self.model.select_card_by_name(card_name, self.user_id)
         self.view.choice_edit_delete_card(card_data)
+
+
+    def is_card_name_exist(self, name):
+        return self.model.is_card_name_exist(name)
 

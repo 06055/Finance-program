@@ -1,30 +1,39 @@
 import mysql.connector
 from datetime import datetime
+from tkinter import messagebox
+import re
 
 
 class FinanceModel:
+
     @staticmethod
     def model_registration(name, gmail, password, password_repeat):
-        if name != '' and name != None:
-            if gmail != '' and gmail != None:
-                if password != '' and password != None and password_repeat != '' and password_repeat != None:
-                    if password == password_repeat:
+        if not all([name, gmail, password, password_repeat]):
+            return "Заповніть всі поля"
 
-                        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
-                        dbc = mysql.connector.connect(**dbconfig)
-                        cursor = dbc.cursor()
-                        _SQL = f"""SELECT gmail FROM user WHERE gmail = '{gmail}' """
-                        cursor.execute(_SQL)
-                        gmail_sql = cursor.fetchone()
+        email_pattern = r'^[\w\.-]+@[\w\.-]+\.\w{2,}$'
+        if not re.match(email_pattern, gmail):
+            return "Некоректна електронна пошта"
+        if password != password_repeat:
+            return "Пароль не збігається"
 
-                        if gmail_sql == None:
-                            _SQL = """INSERT INTO user(name,gmail,password) VALUES(%s,%s,Sha1(%s))"""
-                            cursor.execute(_SQL,(name,gmail,password,))
-                            dbc.commit()
-                            return "Успешная реестрация"
-                        else:return 'Почта занята'
-                    else:return "Пароль не совпадает"
-        else:return "Ошибка"
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        _SQL = "SELECT gmail FROM user WHERE gmail = %s"
+
+        cursor.execute(_SQL, (gmail,))
+        gmail_sql = cursor.fetchone()
+
+        if gmail_sql is not None:
+            return "Пошта зайнята"
+        
+        _SQL = "INSERT INTO user(name, gmail, password) VALUES(%s, %s, Sha1(%s))"
+        cursor.execute(_SQL, (name, gmail, password))
+        dbc.commit()
+
+        return "Успішна реєстрація"
 
 
     @staticmethod
@@ -45,12 +54,8 @@ class FinanceModel:
                     user_id = result[0]
                     return 'Yes', user_id  
                 else:
-                    return 'Почта или пароль были введены не правильно'
-        return 'Почта или пароль были введены не правильно'
-
-
-
-
+                    return 'Пошта або пароль були введені неправильно'
+        return 'Пошта або пароль були введені неправильно'
 
 
     @staticmethod
@@ -177,22 +182,54 @@ class FinanceModel:
         dbc.close()
 
         return result
-    
 
     @staticmethod
-    def edit_card(card_id, name, type_pocket, type_currency, count_money,formatted):
-
+    def get_user_card_names(user_id):
         dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
-        _SQL = """
-            UPDATE pocket SET name=%s, type_pocket=%s, type_currency=%s, count_money=%s, data_made = %s, data_change=NOW()
-            WHERE id=%s
-        """
-        cursor.execute(_SQL, (name, type_pocket, type_currency, count_money, formatted, card_id))
-        dbc.commit()
-        cursor.close()
+        _SQL = "SELECT name FROM pocket WHERE user_id = %s"
+        cursor.execute(_SQL, (user_id,))
+        result = cursor.fetchall()
+
         dbc.close()
+        cursor.close()
+        return [row[0] for row in result]
+
+
+    @staticmethod
+    def edit_card(card_id, name, type_pocket, type_currency, count_money, formatted):
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        try:
+            cursor.execute("SELECT name FROM pocket WHERE id = %s", (card_id,))
+            result = cursor.fetchone()
+            if not result:
+                raise Exception("Карта не найдена")
+            old_name = result[0]
+
+            _SQL = """
+                UPDATE pocket 
+                SET name=%s, type_pocket=%s, type_currency=%s, count_money=%s, data_made = %s, data_change=NOW()
+                WHERE id=%s
+            """
+            cursor.execute(_SQL, (name, type_pocket, type_currency, count_money, formatted, card_id))
+
+            if old_name != name:
+                update_transactions_sql = """
+                    UPDATE transactions SET card=%s WHERE card=%s
+                """
+                cursor.execute(update_transactions_sql, (name, old_name))
+
+            dbc.commit()
+        except Exception as e:
+            dbc.rollback()
+            raise e
+        finally:
+            cursor.close()
+            dbc.close()
 
 
     @staticmethod
@@ -212,7 +249,7 @@ class FinanceModel:
     def select_currency_by_card(card_name):
         dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
-        cursor = dbc.cursor()
+        cursor = dbc.cursor(buffered=True)
         _SQL = """SELECT type_currency FROM pocket WHERE name = %s"""
         cursor.execute(_SQL, (card_name,))
         result = cursor.fetchone()
@@ -334,7 +371,7 @@ class FinanceModel:
         cursor = dbc.cursor()
         try:
             amount = float(amount)
-            if type_transaction.lower() == "расход":
+            if type_transaction.lower() == "витрата":
                 amount = -abs(amount)
             else:
                 amount = abs(amount)
@@ -351,9 +388,11 @@ class FinanceModel:
             dbc.commit()
 
         except ValueError:
-            print("Ошибка: 'amount' должно быть числом.")
+
+            messagebox.showerror("Помилка: «сума» має бути числом.")
+            messagebox.showerror("")
         except mysql.connector.Error as err:
-            print(f"Ошибка: {err}")
+            print(f"Помилка: {err}")
         finally:
             cursor.close()
             dbc.close()
@@ -373,9 +412,20 @@ class FinanceModel:
         dbc.close()
         return result
 
+    def is_card_name_exist(self, name):
+        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        _SQL = "SELECT COUNT(*) FROM pocket WHERE name = %s"
+        cursor.execute(_SQL, (name,))
+        count = cursor.fetchone()[0]
+        cursor.close()
+        dbc.close()
+        return count > 0
 
     @staticmethod
-    def select_transaction_personal_id(card_id):
+    def select_transaction_personal_id(card_id,user_id):
         
         dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
@@ -386,8 +436,8 @@ class FinanceModel:
         cursor.execute(_SQL,(card_id,))
         name_card = cursor.fetchone()
 
-        _SQL = """SELECT * FROM transactions WHERE card = %s"""
-        cursor.execute(_SQL,(name_card[0],))
+        _SQL = """SELECT * FROM transactions WHERE card = %s AND user_id = %s"""
+        cursor.execute(_SQL,(name_card[0],user_id,))
         result = cursor.fetchall()
         
         cursor.close()
@@ -440,7 +490,7 @@ class FinanceModel:
         cursor.execute("SELECT count FROM transactions WHERE id = %s", (id_tr,))
         previous_amount = cursor.fetchone()[0]
         
-        if type_transaction.lower() == "расход":
+        if type_transaction.lower() == "витрата":
             amount = -abs(amount)
         else:
             amount = abs(amount)
@@ -547,14 +597,14 @@ class FinanceModel:
             _SQL = """SELECT * FROM transactions WHERE counteragent = %s"""
             cursor.execute(_SQL,(transactions[0],))
 
-        elif type_item == "Категория":
+        elif type_item == "Категорія":
             _SQL = """SELECT name FROM categories WHERE id = %s"""
             cursor.execute(_SQL,(item_id,))
             transactions = cursor.fetchone()
             _SQL = """SELECT * FROM transactions WHERE categoria = %s"""
             cursor.execute(_SQL,(transactions[0],))
 
-        elif type_item == "Подкатегория":
+        elif type_item == "Підкатегорія":
             _SQL = """SELECT name FROM subcategory WHERE id = %s"""
             cursor.execute(_SQL,(item_id,))
             transactions = cursor.fetchone()
