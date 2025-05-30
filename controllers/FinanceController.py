@@ -246,9 +246,9 @@ class FinanceController:
         if type_item == "Контрагент":
             deleted = self.model.delete_counteragent(name,item_id)
         elif type_item == "Категорія":
-            deleted = self.model.delete_category(name)
+            deleted = self.model.delete_category(name,item_id)
         elif type_item == "Підкатегорія":
-            deleted = self.model.delete_subcategory(name)
+            deleted = self.model.delete_subcategory(name,item_id)
         self.view.refresh_counteragents()
         return deleted
 

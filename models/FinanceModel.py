@@ -704,8 +704,8 @@ class FinanceModel:
             dbc.close()
             return False
 
-        _SQL = """DELETE FROM counterparties WHERE name = %s"""
-        cursor.execute(_SQL, (name,))
+        _SQL = """DELETE FROM counterparties WHERE id = %s"""
+        cursor.execute(_SQL, (item_id,))
         dbc.commit()
 
         cursor.close()
@@ -713,7 +713,7 @@ class FinanceModel:
         return True
 
 
-    def delete_category(self, name):
+    def delete_category(self, name, item_id):
         name = name.strip()
 
         dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
@@ -738,8 +738,8 @@ class FinanceModel:
             dbc.close()
             return False
 
-        _SQL = """DELETE FROM categories WHERE name = %s"""
-        cursor.execute(_SQL, (name,))
+        _SQL = """DELETE FROM categories WHERE id = %s"""
+        cursor.execute(_SQL, (item_id,))
         dbc.commit()
 
         cursor.close()
@@ -747,12 +747,13 @@ class FinanceModel:
         return True
 
 
-    def delete_subcategory(self, name):
+    def delete_subcategory(self, name,item_id):
         name = name.strip()
 
         dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
+
 
         _SQL = """SELECT * FROM transactions WHERE subcategoria = %s"""
         cursor.execute(_SQL, (name,))
@@ -763,8 +764,10 @@ class FinanceModel:
             dbc.close()
             return False
 
-        _SQL = """DELETE FROM subcategory WHERE name = %s"""
-        cursor.execute(_SQL, (name,))
+
+        _SQL = """DELETE FROM subcategory WHERE id = %s"""
+
+        cursor.execute(_SQL,(item_id,))
         dbc.commit()
 
         cursor.close()
