@@ -83,9 +83,14 @@ class FinanceController:
 
     def get_counterpart_info(self, counterpart_id):
         return self.model.select_counterpart_info(counterpart_id)
-    
+
+
     def get_user_card_names(self):
         return self.model.get_user_card_names(self.user_id)
+
+
+    def get_cards_with_balance(self):
+        return self.model.select_cards_with_balance(self.user_id)
 
 
     def add_new_card(self):
@@ -266,6 +271,7 @@ class FinanceController:
     def update_card_list(self):
         card_names = self.model.select_cars(self.user_id)
         return card_names
+
 
 
     def update_card_currency(self, selected_card):

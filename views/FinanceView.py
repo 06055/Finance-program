@@ -12,10 +12,14 @@ from PIL import Image, ImageTk, ImageOps, ImageStat
 import os
 import shutil
 import pandas as pd
+import matplotlib
+import matplotlib.dates
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import pandas as pd
+import mplcursors
+import requests
+from bs4 import BeautifulSoup
 
 
 class FinanceView(Tk):
@@ -471,11 +475,6 @@ class FinanceView(Tk):
             status = None 
 
         return name_card, type_card, balance_card, selected_currency, self.selected_picture_or_color, data_made_dt, status
-
-
-
-    def statistic_on_plus_click(self):
-        self.create_middle_window()
 
 
     def window_dollar_on_plus_click(self):
@@ -1350,6 +1349,35 @@ class FinanceView(Tk):
         self.container_frame = Frame(self, height=50, bg="#D3D3D3")
         self.container_frame.pack(fill="x")
 
+        self.amount_currency = Frame(self, height=900, width=400, bg="#B1B1B1")
+        self.amount_currency.pack(side=LEFT,fill="y")
+        USD_TO_UAH_URL = 'https://www.google.com/search?client=opera-gx&q=курс+доллара+в+грн&sourceid=opera&ie=UTF-8&oe=UTF-8'
+        USD_TO_EUR_URL = 'https://www.google.com/search?client=opera-gx&q=доллары+в+ЕВро&sourceid=opera&ie=UTF-8&oe=UTF-8'
+
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 OPR/107.0.0.0'}
+        response_USD_UAH = requests.get(USD_TO_UAH_URL, headers=headers)
+        response_USD_EUR = requests.get(USD_TO_EUR_URL, headers=headers)
+
+        soup_USD_TO_UAH = BeautifulSoup(response_USD_UAH.content, 'html.parser')
+        soup_USD_TO_EUR = BeautifulSoup(response_USD_EUR.content, 'html.parser')
+
+        convert_USD_TO_UAH = soup_USD_TO_UAH.select_one("span.DFlfde.SwHCTb[data-precision='2']")
+        convert_USD_TO_EUR = soup_USD_TO_EUR.select_one("span.DFlfde.SwHCTb[data-precision='2']")
+
+        exchange_rate_USD_TO_UAH = convert_USD_TO_UAH.text 
+        exchange_rate_USD_TO_UAH_fixed = exchange_rate_USD_TO_UAH.replace(',','.')
+        exchange_rate_USD_TO_UAH_float = float(exchange_rate_USD_TO_UAH_fixed)
+
+        exchange_rate_USD_TO_EUR = convert_USD_TO_EUR.text 
+        exchange_rate_USD_TO_EUR_fixed = exchange_rate_USD_TO_EUR.replace(',','.')
+        exchange_rate_USD_TO_EUR_float = float(exchange_rate_USD_TO_EUR_fixed)
+
+        USD_TO_UAH = exchange_rate_USD_TO_UAH_float
+        USD_TO_EUR = exchange_rate_USD_TO_EUR_float
+        print(USD_TO_UAH)
+        print(USD_TO_EUR)
+
+
 
     def window_statistic(self):
         self.creater_window()
@@ -1359,56 +1387,539 @@ class FinanceView(Tk):
         self.left_frame = Frame(self, width=300, height=900, bg="#B1B1B1")
         self.left_frame.pack(side=LEFT, fill="y")
 
+        self.central_figure = Frame(self,bg="white")
+        self.central_figure.pack(side=LEFT, fill="both", expand=True)
 
-        def clear_main_area():
+        self.right_frame = Frame(self, bg="white")
+        self.right_frame.pack(side=RIGHT, fill="both", expand=True)
+
+        def clear_central_figure():
+            for widget in self.central_figure.winfo_children():
+                widget.destroy()
+
+        def clear_right_frame():
             for widget in self.right_frame.winfo_children():
                 widget.destroy()
 
+        def right_frame_widget():
+            self.month_option_map = ["3 місяця", "6 місяців", "9 місяців", "12 місяців", "За весь час", "За поточний місяць", "За поточний рік", "За минулий рік"]
+            option_month = self.month_option_map  
+
+            option_cardchoise = ["Усі картки"] + self.controller_root.update_card_list()
+
+            self.selected_choise_month_menu = tk.StringVar(value='За поточний місяць')
+            self.choise_month_menu = ttk.OptionMenu(self.right_frame, self.selected_choise_month_menu, None, *option_month)
+            self.choise_month_menu.configure(style="Custom.TMenubutton")
+            self.choise_month_menu.config(width=15)
+            self.choise_month_menu.pack(anchor="ne", padx=10, pady=5)
+
+            self.selected_choisecard = tk.StringVar(value='Усі картки')
+            self.choisecard_menu = ttk.OptionMenu(self.right_frame, self.selected_choisecard, None, *option_cardchoise)
+            self.choisecard_menu.configure(style="Custom.TMenubutton")
+            self.choisecard_menu.config(width=15)
+            self.choisecard_menu.pack(anchor="ne", padx=10, pady=5)
+
+
         def show_profit_loss_schedule():
-            clear_main_area()
+            clear_central_figure()
             result_transaction = self.controller_root.update_transaction()
-            columns = ["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
-                    "Сумма", "Тип валюти", "Карта", "Дата транзакції"]
-            df = pd.DataFrame(result_transaction, columns=columns)
+            clear_right_frame()
+            right_frame_widget()
+
+            def get_selected_month():
+                clear_central_figure()
+                selected_option = self.selected_choise_month_menu.get()
+                selected_card = self.selected_choisecard.get()
+
+                columns = ["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
+                        "Сума", "Тип валюти", "Карта", "Дата транзакції"]
+
+                df = pd.DataFrame(result_transaction, columns=columns)
+                df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
+                current_year = pd.Timestamp.now().year
+                current_mont = pd.Timestamp.now().month
+
+                month_mapping = {
+                    "3 місяця": 3,
+                    "6 місяців": 6,
+                    "9 місяців": 9,
+                    "12 місяців": 12
+                }
+
+                if selected_option == "За весь час":
+                    grouping = "year"
+
+                elif selected_option == "За поточний рік":
+                    df = df[df["Дата транзакції"].dt.year == current_year]
+                    grouping = "month"
+
+                elif selected_option == "За поточний місяць":
+                    df = df[df["Дата транзакції"].dt.month == current_mont]
+                    grouping = "month"
+
+                elif selected_option == "За минулий рік":
+                    previous_year = current_year - 1
+                    df = df[df["Дата транзакції"].dt.year == previous_year]
+                    grouping = "month"
+
+                elif selected_option in month_mapping:
+                    months_offset = month_mapping[selected_option]
+                    now = pd.Timestamp.now()
+
+                    start_date = (now.replace(day=1) - pd.DateOffset(months=months_offset - 1)).replace(day=1)
+
+                    end_date = now.replace(day=1) + pd.offsets.MonthEnd(0)
+
+                    df = df[(df["Дата транзакції"] >= start_date) & (df["Дата транзакції"] <= end_date)]
+                    grouping = "month"
+
+                else:
+                    messagebox.showerror('Помилка', f"Невірне значення місяця: {selected_option}")
+                    clear_right_frame()
+                    return
+
+                if selected_card not in ("Усі картки", "Вибір картки"):
+                    df = df[df["Карта"] == selected_card]
+
+                if grouping == "year":
+                    df["Рік"] = df["Дата транзакції"].dt.year
+                    income = df[df["Тип транзакції"] == "Дохід"].groupby("Рік")["Сума"].sum()
+                    expenses = df[df["Тип транзакції"] == "Витрата"].groupby("Рік")["Сума"].apply(lambda x: x.abs().sum())
+                    x_labels = sorted(set(expenses.index).union(set(income.index)))
+                    title = "Доходи та Витрати по роках"
+                    xlabel = "Рік"
+                    xtick_labels = [str(label) for label in x_labels]
+
+                elif grouping == "month":
+                    df["Рік"] = df["Дата транзакції"].dt.year
+                    df["Місяць"] = df["Дата транзакції"].dt.month
+                    group_cols = ["Рік", "Місяць"]
+                    income = df[df["Тип транзакції"] == "Дохід"].groupby(group_cols)["Сума"].sum()
+                    expenses = df[df["Тип транзакції"] == "Витрата"].groupby(group_cols)["Сума"].apply(lambda x: x.abs().sum())
+
+                    x_labels = sorted(set(expenses.index).union(set(income.index)))
+                    title = "Доходи та Витрати по місяцях"
+                    xlabel = "Місяць"
+
+                    month_names_uk = {
+                        1: "Січень", 2: "Лютий", 3: "Березень", 4: "Квітень", 5: "Травень", 6: "Червень",
+                        7: "Липень", 8: "Серпень", 9: "Вересень", 10: "Жовтень", 11: "Листопад", 12: "Грудень"
+                    }
+                    xtick_labels = [f"{month_names_uk.get(m, str(m))} {y}" for y, m in x_labels]
+
+                x = range(len(x_labels))
+                income_values = [income.get(label, 0) for label in x_labels]
+                expense_values = [expenses.get(label, 0) for label in x_labels]
+
+                fig = Figure(figsize=(10, 5), dpi=100)
+                ax = fig.add_subplot(111)
+
+                bar_width = 0.35
+                ax.bar([i - bar_width / 2 for i in x], income_values, width=bar_width, color='green', label='Доходи')
+                ax.bar([i + bar_width / 2 for i in x], expense_values, width=bar_width, color='red', label='Витрати')
+
+                ax.set_title(title)
+                ax.set_xlabel(xlabel)
+                ax.set_ylabel("Сума")
+                ax.set_xticks(x)
+                ax.set_xticklabels(xtick_labels, rotation=30)
+                ax.legend()
+                ax.grid(True)
+
+                canvas = FigureCanvasTkAgg(fig, master=self.central_figure)
+                canvas.draw()
+                canvas.get_tk_widget().pack(fill="both", expand=True)
+
+            self.submit_select_month_for_profit_loss_schedule = ttk.Button(
+                self.right_frame, text="Додати", width=15, command=get_selected_month)
+            self.submit_select_month_for_profit_loss_schedule.config(width=15)
+            self.submit_select_month_for_profit_loss_schedule.pack(anchor="ne", padx=10, pady=10)
+
+            get_selected_month()
+
+
+        def show_circular_spending_chart():
+            clear_central_figure()
+            clear_right_frame()
+            self.month_option_map = ["3 місяця", "6 місяців", "9 місяців", "12 місяців", "За весь час", "За поточний місяць", "За поточний рік", "За минулий рік"]
+            selected_option = tk.StringVar(value="За поточний місяць")
+
+            month_menu = ttk.OptionMenu(self.right_frame, selected_option, None, *self.month_option_map)
+            month_menu.config(width=15)
+            month_menu.pack(anchor="ne", padx=10, pady=10)
+
+            def draw_chart():
+                df = pd.DataFrame(self.controller_root.update_transaction(),
+                                columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
+                                        "Сума", "Тип валюти", "Карта", "Дата транзакції"])
+                df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
+                df = df[df["Тип транзакції"] == "Витрата"]
+                df["Сума"] = df["Сума"].abs()
+
+                now = pd.Timestamp.now()
+                current_year = now.year
+                current_mont = now.month
+                option = selected_option.get()
+
+                month_mapping = {
+                    "3 місяця": 3,
+                    "6 місяців": 6,
+                    "9 місяців": 9,
+                    "12 місяців": 12
+                }
+
+                if option == "За поточний рік":
+                    df = df[df["Дата транзакції"].dt.year == current_year]
+
+                elif option == "За поточний місяць":
+                    df = df[(df["Дата транзакції"].dt.month == current_mont) & 
+                            (df["Дата транзакції"].dt.year == current_year)]
+
+                elif option == "За минулий рік":
+                    df = df[df["Дата транзакції"].dt.year == current_year - 1]
+
+                elif option in month_mapping:
+                    months_offset = month_mapping[option]
+                    end_date = now.replace(day=1) + pd.offsets.MonthEnd(0)
+                    start_date = (now.replace(day=1) - pd.DateOffset(months=months_offset - 1))
+
+                    df = df[(df["Дата транзакції"] >= start_date) & (df["Дата транзакції"] <= end_date)]
+
+
+                grouped = df.groupby("Категорія")["Сума"].sum()
+
+                clear_central_figure()
+                fig = Figure(figsize=(7, 6), dpi=100)
+                ax = fig.add_subplot(111)
+                ax.pie(grouped, labels=grouped.index, autopct='%1.1f%%')
+                ax.set_title("Круговий графік витрат")
+
+                canvas = FigureCanvasTkAgg(fig, master=self.central_figure)
+                canvas.draw()
+                canvas.get_tk_widget().pack(fill="both", expand=True)
+
+            ttk.Button(self.right_frame, text="Показати", command=draw_chart).pack(anchor="ne", padx=10, pady=10)
+            draw_chart()
+
+
+
+        def show_income_sources():
+            clear_central_figure()
+            clear_right_frame()
+
+            self.month_option_map = ["3 місяця", "6 місяців", "9 місяців", "12 місяців", "За весь час", "За поточний місяць", "За поточний рік", "За минулий рік"]
+            selected_option = tk.StringVar(value="За поточний місяць")
+
+            month_menu = ttk.OptionMenu(self.right_frame, selected_option, None, *self.month_option_map)
+            month_menu.config(width=15)
+            month_menu.pack(anchor="ne", padx=10, pady=10)
+
+            def draw_chart():
+                df = pd.DataFrame(self.controller_root.update_transaction(),
+                                columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
+                                        "Сума", "Тип валюти", "Карта", "Дата транзакції"])
+                df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
+                df = df[df["Тип транзакції"] == "Дохід"]
+                df["Джерело"] = df["Категорія"]
+
+                now = pd.Timestamp.now()
+                current_year = now.year
+                current_mont = now.month
+                option = selected_option.get()
+
+                month_mapping = {
+                    "3 місяця": 3,
+                    "6 місяців": 6,
+                    "9 місяців": 9,
+                    "12 місяців": 12
+                }
+
+                if option == "За поточний рік":
+                    df = df[df["Дата транзакції"].dt.year == current_year]
+
+                elif option == "За поточний місяць":
+                    df = df[(df["Дата транзакції"].dt.month == current_mont) & 
+                            (df["Дата транзакції"].dt.year == current_year)]
+
+                elif option == "За минулий рік":
+                    df = df[df["Дата транзакції"].dt.year == current_year - 1]
+
+                elif option in month_mapping:
+                    months_offset = month_mapping[option]
+
+                    end_date = now.replace(day=1) + pd.offsets.MonthEnd(0)
+                    start_date = (now.replace(day=1) - pd.DateOffset(months=months_offset - 1))
+
+                    df = df[(df["Дата транзакції"] >= start_date) & (df["Дата транзакції"] <= end_date)]
+
+
+                grouped = df.groupby("Джерело")["Сума"].sum()
+
+                clear_central_figure()
+                fig = Figure(figsize=(7, 6), dpi=100)
+                ax = fig.add_subplot(111)
+                ax.pie(grouped, labels=grouped.index, autopct='%1.1f%%')
+                ax.set_title("Доходи по джерелах")
+
+                canvas = FigureCanvasTkAgg(fig, master=self.central_figure)
+                canvas.draw()
+                canvas.get_tk_widget().pack(fill="both", expand=True)
+
+            ttk.Button(self.right_frame, text="Показати", command=draw_chart).pack(anchor="ne", padx=10, pady=10)
+            draw_chart()
+
+
+
+
+        def show_balance_over_time():
+            clear_central_figure()
+            clear_right_frame()
+            
+            cards_data = self.controller_root.get_cards_with_balance()
+            pocket_balances = {name: balance for name, balance in cards_data}
+
+            list_cards = self.controller_root.update_card_list()
+
+            df = pd.DataFrame(self.controller_root.update_transaction(),
+                            columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
+                                    "Сума", "Тип валюти", "Карта", "Дата транзакції"])
             df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
-            expenses = df[df["Тип транзакції"] == "Дохід"]
-            daily_expenses = expenses.groupby("Дата транзакції")["Сумма"].sum()
-            fig = Figure(figsize=(8, 4), dpi=100)
+            df["Сума"] = df["Сума"].astype(float)
+            df["Баланс"] = df.apply(lambda row: row["Сума"] if row["Тип транзакції"] == "Дохід" else -abs(row["Сума"]), axis=1)
+            df.sort_values("Дата транзакції", inplace=True)
+
+            fig = Figure(figsize=(11, 5), dpi=100)
             ax = fig.add_subplot(111)
-            ax.plot(daily_expenses.index, daily_expenses.values, marker='o', color='red')
-            ax.set_title("Дохід по дням")
-            ax.set_xlabel("Дата")
-            ax.set_ylabel("Сумма Доходів")
-            ax.grid(True)
-            fig.autofmt_xdate()
-            canvas = FigureCanvasTkAgg(fig, master=self.right_frame)
+
+            color_palette = [
+                "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
+                "#9467bd", "#8c564b", "#e377c2", "#7f7f7f",
+                "#bcbd22", "#17becf"
+            ]
+
+            lines = []
+            labels = []
+            for idx, card in enumerate(list_cards):
+                df_card = df[df["Карта"] == card].copy()
+                if df_card.empty:
+                    continue
+                
+
+                start_balance = pocket_balances.get(card, 0)
+
+                df_card["Поточний баланс"] = df_card["Баланс"].cumsum() + start_balance
+
+                color = color_palette[idx % len(color_palette)]
+                line, = ax.plot(df_card["Дата транзакції"], df_card["Поточний баланс"],
+                                label=card, color=color, linewidth=2, marker='o', markersize=4)
+                lines.append(line)
+                labels.append(card)
+
+            ax.set_title("Баланс з часом по картках", fontsize=14, fontweight='bold')
+            ax.set_xlabel("Дата", fontsize=12)
+            ax.set_ylabel("Сума", fontsize=12)
+            ax.tick_params(axis='both', labelsize=10)
+            ax.legend(title="Картки", fontsize=9, title_fontsize=10)
+            ax.grid(True, linestyle='--', alpha=0.5)
+
+            fig.tight_layout()
+
+            canvas = FigureCanvasTkAgg(fig, master=self.central_figure)
             canvas.draw()
             canvas.get_tk_widget().pack(fill="both", expand=True)
 
-        def show_median_earnings():
-            clear_main_area()
-            print("Медіана заробітку")
+            cursor = mplcursors.cursor(lines, hover=True)
 
-        def show_circular_spending_chart():
-            clear_main_area()
-            print("Круговий графік витрат")
+            @cursor.connect("add")
+            def on_add(sel):
+                x, y = sel.target
+                date = matplotlib.dates.num2date(x).strftime("%Y-%m-%d")
+                line = sel.artist  
+                label = line.get_label()  
+                sel.annotation.set(text=f"{label}:\nДата: {date}\nБаланс: {y:.2f}")
+                sel.annotation.get_bbox_patch().set(fc="white")
 
-        def show_credit_schedule():
-            clear_main_area()
-            print("Графік кредитів")
+        def show_balance_over_time_all_card():
+            clear_central_figure()
+            clear_right_frame()
 
-        def show_savings_chart():
-            clear_main_area()
-            print("Графік заощаджень")
+            cards_data = self.controller_root.get_cards_with_balance()
+            pocket_balances = {name: balance for name, balance in cards_data}
 
-        self.right_frame = Frame(self, bg="white")
-        self.right_frame.pack(side=LEFT, fill="both", expand=True)
+            total_start_balance = sum(pocket_balances.values())
 
-        Button(self.left_frame, text="Графік прибутку/витрат", command=show_profit_loss_schedule, height=1, bg="#B1B1B1").pack(fill="x", pady=(10, 0))
-        Button(self.left_frame, text="Медіана заробітку", command=show_median_earnings, height=1, bg="#B1B1B1").pack(fill="x", pady=(10, 0))
-        Button(self.left_frame, text="Круговий графік витрат",command=show_circular_spending_chart, height=1, bg="#B1B1B1").pack(fill="x", pady=(10, 0))
-        Button(self.left_frame, text="Графік кредитів", command=show_credit_schedule, height=1, bg="#B1B1B1").pack(fill="x", pady=(10, 0))
-        Button(self.left_frame, text="Графік заощаджень", command=show_savings_chart, height=1, bg="#B1B1B1").pack(fill="x", pady=(10, 0))
+            df = pd.DataFrame(self.controller_root.update_transaction(),
+                            columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
+                                    "Сума", "Тип валюти", "Карта", "Дата транзакції"])
+            df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
+            df["Сума"] = df["Сума"].astype(float)
+            df["Баланс"] = df.apply(lambda row: row["Сума"] if row["Тип транзакції"] == "Дохід" else -abs(row["Сума"]), axis=1)
+            df.sort_values("Дата транзакції", inplace=True)
+
+            df["Загальний баланс"] = df["Баланс"].cumsum() + total_start_balance
+
+            fig = Figure(figsize=(11, 5), dpi=100)
+            ax = fig.add_subplot(111)
+
+            line, = ax.plot(df["Дата транзакції"], df["Загальний баланс"],
+                            label="Усі картки", color="#048830", linewidth=2, marker='o', markersize=4)
+
+            ax.set_title("Загальний баланс з часом", fontsize=14, fontweight='bold')
+            ax.set_xlabel("Дата", fontsize=12)
+            ax.set_ylabel("Сума", fontsize=12)
+            ax.tick_params(axis='both', labelsize=10)
+            ax.legend(fontsize=10)
+            ax.grid(True, linestyle='--', alpha=0.5)
+
+            fig.tight_layout()
+
+            canvas = FigureCanvasTkAgg(fig, master=self.central_figure)
+            canvas.draw()
+            canvas.get_tk_widget().pack(fill="both", expand=True)
+
+            cursor = mplcursors.cursor([line], hover=True)
+
+            @cursor.connect("add")
+            def on_add(sel):
+                x, y = sel.target
+                date = matplotlib.dates.num2date(x).strftime("%Y-%m-%d")
+                sel.annotation.set(text=f"Дата: {date}\nБаланс: {y:.2f}")
+                sel.annotation.get_bbox_patch().set(fc="white")
+
+
+        def show_transaction_activity_heatmap():
+            clear_central_figure()
+            clear_right_frame()
+
+            df = pd.DataFrame(self.controller_root.update_transaction(),
+                            columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
+                                    "Сума", "Тип валюти", "Карта", "Дата транзакції"])
+            df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
+            df["День тижня"] = df["Дата транзакції"].dt.day_name()
+            df["Година"] = df["Дата транзакції"].dt.hour
+
+            pivot = df.pivot_table(index="Година", columns="День тижня", values="ID", aggfunc="count").fillna(0)
+
+            ordered_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            pivot = pivot.reindex(columns=ordered_days)
+
+            day_name_map = {
+                "Monday": "Пн",
+                "Tuesday": "Вт",
+                "Wednesday": "Ср",
+                "Thursday": "Чт",
+                "Friday": "Пт",
+                "Saturday": "Сб",
+                "Sunday": "Нд"
+            }
+            pivot.columns = [day_name_map.get(col, col) for col in pivot.columns]
+
+            fig = Figure(figsize=(10, 6), dpi=100)
+            ax = fig.add_subplot(111)
+            cax = ax.imshow(pivot.values, cmap="YlOrRd", aspect="auto")
+
+            ax.set_xticks(range(len(pivot.columns)))
+            ax.set_xticklabels(pivot.columns, rotation=45)
+            ax.set_yticks(range(len(pivot.index)))
+            ax.set_yticklabels(pivot.index)
+
+            ax.set_title("Теплова карта активності транзакцій")
+            fig.colorbar(cax, ax=ax, label="Кількість транзакцій")
+
+            canvas = FigureCanvasTkAgg(fig, master=self.central_figure)
+            canvas.draw()
+            canvas.get_tk_widget().pack(fill="both", expand=True)
+
+
+        def show_contractor_category_expense_timeline():
+            clear_central_figure()
+            clear_right_frame()
+
+
+            df = pd.DataFrame(self.controller_root.update_transaction(),
+                            columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
+                                    "Сума", "Тип валюти", "Карта", "Дата транзакції"])
+            df = df[df["Тип транзакції"] == "Витрата"]
+            df["Сума"] = df["Сума"].abs()
+            df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
+            df["Місяць"] = df["Дата транзакції"].dt.to_period("M").astype(str)
+
+            contractors = sorted(df["Контрагент"].dropna().unique())
+            selected_contractor = tk.StringVar()
+            selected_category = tk.StringVar()
+
+            selected_contractor.set(contractors[0] if contractors else "")
+            selected_category.set("")
+
+            ttk.Label(self.right_frame, text="Контрагент:").pack(anchor="ne", padx=10, pady=(10, 0))
+            contractor_menu = ttk.OptionMenu(self.right_frame, selected_contractor, selected_contractor.get(), *contractors)
+            contractor_menu.pack(anchor="ne", padx=10, pady=(0, 10))
+
+            ttk.Label(self.right_frame, text="Категорія:").pack(anchor="ne", padx=10, pady=(10, 0))
+            category_menu = ttk.OptionMenu(self.right_frame, selected_category, "")
+            category_menu.pack(anchor="ne", padx=10, pady=(0, 10))
+
+            def update_categories(*args):
+                contractor = selected_contractor.get()
+                if not contractor:
+                    return
+
+                filtered_df = df[df["Контрагент"] == contractor]
+                categories = sorted(filtered_df["Категорія"].dropna().unique())
+
+                if categories:
+                    selected_category.set(categories[0])
+                else:
+                    selected_category.set("")
+
+                menu = category_menu["menu"]
+                menu.delete(0, "end")
+                for cat in categories:
+                    menu.add_command(label=cat, command=lambda c=cat: selected_category.set(c))
+
+
+            def draw_chart():
+                clear_central_figure()
+
+                contractor = selected_contractor.get()
+                category = selected_category.get()
+                if not contractor or not category:
+                    return
+
+                filtered_df = df[(df["Контрагент"] == contractor) & (df["Категорія"] == category)]
+                grouped = filtered_df.groupby("Місяць")["Сума"].sum()
+
+                fig = Figure(figsize=(10, 5), dpi=100)
+                ax = fig.add_subplot(111)
+                ax.plot(grouped.index, grouped.values, marker="o", linestyle="-", color="orange")
+
+                ax.set_title(f"Витрати: {contractor} → {category}")
+                ax.set_xlabel("Місяць")
+                ax.set_ylabel("Сума витрат (грн)")
+                ax.grid(True)
+
+                canvas = FigureCanvasTkAgg(fig, master=self.central_figure)
+                canvas.draw()
+                canvas.get_tk_widget().pack(fill="both", expand=True)
+
+            selected_contractor.trace("w", update_categories)
+
+            ttk.Button(self.right_frame, text="Показати", command=draw_chart).pack(anchor="ne", padx=10, pady=10)
+
+            update_categories()
+            draw_chart()
+
+
+        "Выбор категории и показывает траты за время"
+
+        Button(self.left_frame, text="Стовпчикова діаграма Доходи/Витрати", command=show_profit_loss_schedule, height=1, bg="#B1B1B1").pack(fill="x", pady=(10, 0))
+        Button(self.left_frame, text="Круговий графік витрат", command=show_circular_spending_chart, height=1, bg="#B1B1B1").pack(fill="x")
+        Button(self.left_frame, text="Круговий графік доходів", command=show_income_sources, height=1, bg="#B1B1B1").pack(fill="x")
+        Button(self.left_frame, text="Баланс з часом по картам", command=show_balance_over_time, height=1, bg="#B1B1B1").pack(fill="x")
+        Button(self.left_frame, text="Баланс з часом за рахунком ", command=show_balance_over_time_all_card, height=1, bg="#B1B1B1").pack(fill="x")
+
+        Button(self.left_frame, text="Теплова карта по днях тижня та годин", command=show_transaction_activity_heatmap, height=1, bg="#B1B1B1").pack(fill="x")
+        Button(self.left_frame, text="Витрати за категоріями", command=show_contractor_category_expense_timeline, height=1, bg="#B1B1B1").pack(fill="x")
 
 
     def window_counteragents(self):
@@ -1433,7 +1944,6 @@ class FinanceView(Tk):
             if category_id not in subcategories_by_category:
                 subcategories_by_category[category_id] = []
             subcategories_by_category[category_id].append(subcategory)
-
 
         self.tree_frame = Frame(self)
         self.tree_frame.pack(fill="both", expand=True, padx=10, pady=5)
@@ -1647,25 +2157,6 @@ class FinanceView(Tk):
             tree.item(item, text=text.replace(old_symbol, new_symbol))
 
 
-
-"""
-
-ОСТАЛОСЬ ЧТО БЫ ПЕРЕЙТИ
-
-Убрать Захват транзакций после нажатия
-ПЕРСОНАЛЬНЫЕ КАРТЫ Додати МАССОВОЕ УДАЛЕНИЕ ТРАНЗАКЦИЙ
-
-Додати что бы пользователь не мог добавлять имя той же карты если оно существует
-
-УДАЛЕНИЕ КАРТЫ:
-ЕСЛИ КАРТА НОВАЯ И НА НЕЙ НЕТУ ТРАНЗАКЦИЙ ТО МОЖНО Видалити 
-
-
-ДОДЕЛАТЬ
-И
-ЧТО БЫ КАРТЫ РАСТЯГИВАЛИСЬ АВТОМАТИСЧЕСКИ В ЗАВИСИМОСТИ ОТ РАЗМЕРА ЭКРАНА
-
-"""
 
 
 

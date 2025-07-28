@@ -244,6 +244,19 @@ class FinanceModel:
         dbc.close()
         return [row[0] for row in result]  
 
+    @staticmethod
+    def select_cards_with_balance(user_id):
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+        _SQL = """SELECT name, count_money FROM pocket WHERE user_id = %s"""
+        cursor.execute(_SQL, (user_id,))
+        result = cursor.fetchall()
+        cursor.close()
+        dbc.close()
+        return [(row[0], float(row[1])) for row in result]
+
+
 
     @staticmethod
     def select_currency_by_card(card_name):
