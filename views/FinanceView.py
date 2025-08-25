@@ -294,7 +294,6 @@ class FinanceView(Tk):
             for subcat in filtered_subcategories:
                 self.namesubcategorie_menu['menu'].add_command(label=subcat, command=tk._setit(self.selected_subcategires, subcat))
 
-
         self.label_namecategorie = ttk.Label(self.new_window, width=30, text='Назва Категорії', font=("Arial", 16))
         self.label_namecategorie.grid(row=3, column=0, pady=0, padx=20, sticky="n")
         self.selected_categires = tk.StringVar(value="Вибір Категорії")
@@ -345,8 +344,6 @@ class FinanceView(Tk):
         self.choisecard_menu.configure(style="Custom.TMenubutton")
         self.choisecard_menu.config(width=25)
         self.choisecard_menu.grid(row=12, column=0, padx=20, pady=0, sticky="w")
-
-
 
         self.selected_choisecard.trace("w", update_currency)
 
@@ -435,12 +432,10 @@ class FinanceView(Tk):
         messagebox.showinfo("Успіх", "Карта успішно додана!")
 
 
-
     def open_file(self):
         file_path = filedialog.askopenfilename(
             title="Виберіть файл",
-            filetypes=(("Усі файли", "*.*"), ("Текстові файли", "*.txt"), ("Зображення", "*.png;*.jpg;*.jpeg"))
-        )
+            filetypes=(("Усі файли", "*.*"), ("Текстові файли", "*.txt"), ("Зображення", "*.png;*.jpg;*.jpeg")))
         if file_path:
             selected_file = file_path
             try:
@@ -462,7 +457,6 @@ class FinanceView(Tk):
             self.selected_picture_or_color = color
 
 
-
     def get_add_card_information(self):
         name_card = self.name_card_entry.get()
         type_card = self.selected_type.get()  
@@ -477,8 +471,6 @@ class FinanceView(Tk):
         return name_card, type_card, balance_card, selected_currency, self.selected_picture_or_color, data_made_dt, status
 
 
-    def window_dollar_on_plus_click(self):
-        self.create_middle_window()
 
 
     def window_add_counteragent(self):
@@ -486,7 +478,6 @@ class FinanceView(Tk):
 
         center_frame = tk.Frame(self.new_window)
         center_frame.place(relx=0.5, rely=0.5, anchor="center")
-
         self.label_name = Label(center_frame, text="Ім'я Контрагента", font=("Arial", 10))
         self.label_name.grid(row=0, column=0, pady=5, padx=10, sticky="w")
 
@@ -557,19 +548,16 @@ class FinanceView(Tk):
         self.counterparty_menu.grid(row=1, column=0, pady=5, padx=10)
         self.selected_counterparty.trace("w", update_categories)
 
-
         self.label_namecategorie = ttk.Label(center_frame, width=20, text='Назва Категорії', font=("Arial", 10))
         self.label_namecategorie.grid(row=2, column=0, pady=0, padx=20, sticky="n")
         self.select_category = tk.StringVar(value="Вибір Категорії")
         self.namecategorie_menu = ttk.OptionMenu(center_frame, self.select_category, None)
-
         self.namecategorie_menu.grid(row=3, column=0, pady=5, padx=10)
 
         self.label_name = Label(center_frame, width=20, text="Ім'я Підкатегорії", font=("Arial", 10))
         self.label_name.grid(row=4, column=0, pady=5, padx=10)
         self.name_subcategory_entry = Entry(center_frame, font=("Arial", 10))
         self.name_subcategory_entry.grid(row=5, column=0, pady=5, padx=10)
-
 
         self.submit_button_add_subcategory = Button(center_frame, text="Додати подкатегорию", font=("Arial", 10))
         self.submit_button_add_subcategory.config(command=self.controller_root.submit_data_add_subcategory)
@@ -1162,10 +1150,6 @@ class FinanceView(Tk):
         self.new_window.protocol("WM_DELETE_WINDOW", on_close)
 
 
-
-
-
-
     def choice_edit_delete_card(self, card):
         if not card:
             self.create_middle_window()
@@ -1344,39 +1328,66 @@ class FinanceView(Tk):
             self.tree.insert("", "end", values=transaction[1:], tags=(background_tag), iid=transaction[0])
 
 
+
+    def window_dollar_on_plus_click(self):
+        self.create_middle_window()
+        self.label_iso_currency = Label(self.new_window, text = "Введіть ISO валюти", font=("Arial", 10))
+        self.label_iso_currency.place(anchor="center")
+        self.label_iso_currency.pack()
+
+        self.entry_iso_currency = Entry(self.new_window, font=("Arial", 10))
+        self.entry_iso_currency.place(anchor="center")
+        self.entry_iso_currency.pack()
+
+        self.submit_iso_currency = Button(self.new_window, text="Додати", font=("Arial", 10))
+        self.submit_iso_currency.config(command=lambda: self.check_valid_currency(self.entry_iso_currency.get()))
+        self.submit_iso_currency.pack()
+
+
+    def check_valid_currency(self,entry_iso_currency):
+        print(entry_iso_currency)
+        self.clear_widgets()
+
+
     def window_dollars(self):
         self.creater_window()
         self.container_frame = Frame(self, height=50, bg="#D3D3D3")
         self.container_frame.pack(fill="x")
 
         self.amount_currency = Frame(self, height=900, width=400, bg="#B1B1B1")
-        self.amount_currency.pack(side=LEFT,fill="y")
-        USD_TO_UAH_URL = 'https://www.google.com/search?client=opera-gx&q=курс+доллара+в+грн&sourceid=opera&ie=UTF-8&oe=UTF-8'
-        USD_TO_EUR_URL = 'https://www.google.com/search?client=opera-gx&q=доллары+в+ЕВро&sourceid=opera&ie=UTF-8&oe=UTF-8'
+        self.amount_currency.pack(side=LEFT, fill="y")
 
-        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 OPR/107.0.0.0'}
-        response_USD_UAH = requests.get(USD_TO_UAH_URL, headers=headers)
-        response_USD_EUR = requests.get(USD_TO_EUR_URL, headers=headers)
+        def get_api_rate(base: str, target: str) -> float | None:
+            url = f"https://open.er-api.com/v6/latest/{base}"
+            try:
+                response = requests.get(url, timeout=5)
+                data = response.json()
+                if data.get("result") == "success":
+                    rate = data["rates"].get(target)
+                    if rate:
+                        return rate
+                    else:
+                        print(f"Курс {target} не найден в ответе.")
+                        return None
+                else:
+                    print(f"Ошибка API: {data.get('error-type')}")
+                    return None
+            except Exception as e:
+                print(f"Ошибка при получении курса {base}->{target}: {e}")
+                return None
+        
+        """
+        1.Создать вывод валют в левом окне
+        2.СОЗДАТЬ БУФЕРКУ В КОТОРУЮ БУДУТ ЛОЖИТСЯ ВАЛЮТЫ И СРАВНИВАТЬСЯ 
+        3.СОЗДАТЬ ОКНО ДЯЛ ДОБАВЛЕНИЯ НОВЫХ ВАЛЮТ с проверкой на ошибку
+        """
 
-        soup_USD_TO_UAH = BeautifulSoup(response_USD_UAH.content, 'html.parser')
-        soup_USD_TO_EUR = BeautifulSoup(response_USD_EUR.content, 'html.parser')
-
-        convert_USD_TO_UAH = soup_USD_TO_UAH.select_one("span.DFlfde.SwHCTb[data-precision='2']")
-        convert_USD_TO_EUR = soup_USD_TO_EUR.select_one("span.DFlfde.SwHCTb[data-precision='2']")
-
-        exchange_rate_USD_TO_UAH = convert_USD_TO_UAH.text 
-        exchange_rate_USD_TO_UAH_fixed = exchange_rate_USD_TO_UAH.replace(',','.')
-        exchange_rate_USD_TO_UAH_float = float(exchange_rate_USD_TO_UAH_fixed)
-
-        exchange_rate_USD_TO_EUR = convert_USD_TO_EUR.text 
-        exchange_rate_USD_TO_EUR_fixed = exchange_rate_USD_TO_EUR.replace(',','.')
-        exchange_rate_USD_TO_EUR_float = float(exchange_rate_USD_TO_EUR_fixed)
-
-        USD_TO_UAH = exchange_rate_USD_TO_UAH_float
-        USD_TO_EUR = exchange_rate_USD_TO_EUR_float
-        print(USD_TO_UAH)
-        print(USD_TO_EUR)
-
+        get_api_rate_core = ("USD","EUR","UAH")
+        get_api_rate_choiced = get_api_rate(get_api_rate_core[0],get_api_rate_core[2])
+        if get_api_rate_choiced is not None:
+            print(f"Курс USD к UAH: {get_api_rate_choiced}")
+        else:
+            print("Ошибка: курс USD к UAH не получен.")
 
 
     def window_statistic(self):
