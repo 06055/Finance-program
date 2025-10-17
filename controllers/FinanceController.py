@@ -93,13 +93,6 @@ class FinanceController:
         return self.model.select_cards_with_balance(self.user_id)
 
 
-    def add_new_card(self):
-        name_card,type_card,balance_card,selected_currency,selected_file_or_color,full_date,status = self.view.get_add_card_information()
-        self.model.add_new_card(name_card,type_card,balance_card,selected_currency,selected_file_or_color,full_date,status,self.user_id)
-        self.view.new_window.destroy()
-        self.view.refresh_cards()
-
-
     def try_delete_card(self, card_id):
         result = self.model.can_delete_card(card_id)
         if result == None:
@@ -118,6 +111,14 @@ class FinanceController:
     def try_edit_card(self, card_id, new_name, new_type, new_currency, float_money, formatted):
         self.model.edit_card(card_id, new_name, new_type, new_currency, float_money, formatted)
         self.view.refresh_cards()
+
+
+    def add_new_card(self):
+        name_card,type_card,balance_card,selected_currency,selected_file_or_color,full_date,status = self.view.get_add_card_information()
+        self.model.add_new_card(name_card,type_card,balance_card,selected_currency,selected_file_or_color,full_date,status,self.user_id)
+        self.view.new_window.destroy()
+        self.view.refresh_cards()
+
 
 
     def add_transaction(self):
@@ -176,6 +177,14 @@ class FinanceController:
         self.model.add_subcategory(name,parent_id,self.user_id)
         self.view.new_window.destroy() 
         self.view.refresh_counteragents()
+
+
+    def get_currency_amount(self):
+        currency_amount = self.view.get_information_type_currency()
+        if currency_amount is None:
+            print("Валюта невалидна")
+        else:
+            print(f"Текущая валюта: {currency_amount}")
 
 
     def submit_update_personal_card_transaction(self, card_id):

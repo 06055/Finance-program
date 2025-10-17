@@ -667,6 +667,29 @@ class FinanceView(Tk):
         self.load_icons('window_counteragents', self.controller_root.title_icons)
 
 
+    def refresh_cards(self):
+        all_frames = [f for f in self.children]
+        for f_name in all_frames:
+            self.nametowidget(f_name).destroy()
+
+        self.window_cards(self.controller_root.get_select_card_all())
+        self.load_icons('window_cards', self.controller_root.title_icons)
+
+
+    def refresh_dollar(self):
+        all_frame = [f for f in self.children]
+        for fname in all_frame:
+            self.nametowidget(fname).destroy()
+        self.window_dollars()
+        self.load_icons('window_dollar', self.controller_root.title_icons)
+
+    def refresh_personal_transaction(self,tr_card):
+        all_frames = [f for f in self.children]
+        for f_name in all_frames:
+            self.nametowidget(f_name).destroy()
+        self.personal_transaction_card(tr_card)
+
+
     def window_transaction(self):
         self.creater_window()
 
@@ -765,7 +788,6 @@ class FinanceView(Tk):
         def update_subcategories(*args):
             selected_categires_name = self.selected_categires.get()
             selected_categires_id = None
-            
             for categorie in category_list:
                 if categorie[1] == selected_categires_name:
                     selected_categires_id = categorie[0]
@@ -861,15 +883,6 @@ class FinanceView(Tk):
 
     def on_card_click(self, card_id):
         self.controller_root.submit_update_personal_card_transaction(card_id) 
-
-
-    def refresh_cards(self):
-        all_frames = [f for f in self.children]
-        for f_name in all_frames:
-            self.nametowidget(f_name).destroy()
-
-        self.window_cards(self.controller_root.get_select_card_all())
-        self.load_icons('window_cards', self.controller_root.title_icons)
 
 
     def window_cards(self, cards):
@@ -1052,12 +1065,6 @@ class FinanceView(Tk):
         self.submit_button_card.config(command=self.controller_root.add_transaction_personal)
         self.submit_button_card.grid(row=13, column=0, pady=10, padx=20, sticky="n")
 
-
-    def refresh_personal_transaction(self,tr_card):
-        all_frames = [f for f in self.children]
-        for f_name in all_frames:
-            self.nametowidget(f_name).destroy()
-        self.personal_transaction_card(tr_card)
 
 
     def personal_transaction_card(self, tr_card):
@@ -1327,26 +1334,50 @@ class FinanceView(Tk):
             background_tag = "evenrow" if index % 2 == 0 else "oddrow"
             self.tree.insert("", "end", values=transaction[1:], tags=(background_tag), iid=transaction[0])
 
-
-
     def window_dollar_on_plus_click(self):
         self.create_middle_window()
-        self.label_iso_currency = Label(self.new_window, text = "Введіть ISO валюти", font=("Arial", 10))
-        self.label_iso_currency.place(anchor="center")
+        self.label_iso_currency = Label(self.new_window, text="Введіть ISO валюти", font=("Arial", 10))
         self.label_iso_currency.pack()
 
-        self.entry_iso_currency = Entry(self.new_window, font=("Arial", 10))
-        self.entry_iso_currency.place(anchor="center")
-        self.entry_iso_currency.pack()
+        self.entry_iso_currency_input = Entry(self.new_window, font=("Arial", 10))
+        self.entry_iso_currency_input.pack()
 
-        self.submit_iso_currency = Button(self.new_window, text="Додати", font=("Arial", 10))
-        self.submit_iso_currency.config(command=lambda: self.check_valid_currency(self.entry_iso_currency.get()))
+        self.submit_iso_currency = Button(
+            self.new_window,
+            text="Додати",
+            font=("Arial", 10),
+            command=lambda: self.handle_currency_submit()
+        )
         self.submit_iso_currency.pack()
 
 
-    def check_valid_currency(self,entry_iso_currency):
-        print(entry_iso_currency)
+    def handle_currency_submit(self):
+        value = self.entry_iso_currency_input.get()
+        self.get_check_valid_currency(value)
+
+        self.controller_root.get_currency_amount()
+
+
+    def get_check_valid_currency(self, entry_iso_currency):
+        """ЗАМЕНИТЬ НА ПРОВЕРКУ ВАЛЮТ КОТОРЫЕ ЕСТЬ В ИНЕТЕ(ПРОЩЕ ГОВОРЯ ПОЛУЧИТЬ СПИСОК СУЩЕСТВУЮЩИХ ВАЛЮТ)"""
+        list_currency = ['USD', 'UAH', 'EUR']
+        entry_iso_currency = str(entry_iso_currency).strip().upper()
+        if entry_iso_currency in list_currency:
+            self.entry_iso_currency = entry_iso_currency
+        else:
+            self.entry_iso_currency = None
         self.clear_widgets()
+        self.refresh_dollar()
+
+
+
+    def get_information_type_currency(self):
+        """
+        1.Создать вывод валют в левом окне
+        2.СОЗДАТЬ БУФЕРКУ В КОТОРУЮ БУДУТ ЛОЖИТСЯ ВАЛЮТЫ И СРАВНИВАТЬСЯ 
+        3.СОЗДАТЬ ОКНО ДЛЯ ДОБАВЛЕНИЯ НОВЫХ ВАЛЮТ с проверкой на ошибку
+        """
+        return getattr(self, "entry_iso_currency", None)
 
 
     def window_dollars(self):
@@ -1375,18 +1406,16 @@ class FinanceView(Tk):
             except Exception as e:
                 print(f"Ошибка при получении курса {base}->{target}: {e}")
                 return None
-        
-        """
-        1.Создать вывод валют в левом окне
-        2.СОЗДАТЬ БУФЕРКУ В КОТОРУЮ БУДУТ ЛОЖИТСЯ ВАЛЮТЫ И СРАВНИВАТЬСЯ 
-        3.СОЗДАТЬ ОКНО ДЯЛ ДОБАВЛЕНИЯ НОВЫХ ВАЛЮТ с проверкой на ошибку
-        """
 
         get_api_rate_core = ("USD","EUR","UAH")
-        get_api_rate_choiced = get_api_rate(get_api_rate_core[0],get_api_rate_core[2])
-        if get_api_rate_choiced is not None:
-            print(f"Курс USD к UAH: {get_api_rate_choiced}")
+        self.get_api_rate_choiced = get_api_rate(get_api_rate_core[0],get_api_rate_core[2])
+        # self.get_api_rate_choiced = 41.313521
+        if self.get_api_rate_choiced is not None:
+            
+            print(f"Курс USD к UAH: {self.get_api_rate_choiced}")
+            
         else:
+            
             print("Ошибка: курс USD к UAH не получен.")
 
 
