@@ -93,6 +93,21 @@ class FinanceController:
         return self.model.select_cards_with_balance(self.user_id)
 
 
+    def get_add_actual_currency(self,key,value):
+        result = self.model.add_db_actualy_amount(key,value)
+        print(result)
+
+
+    def get_select_actualy_amount(self):
+        get_actual_currency = self.model.select_actualy_amount()
+        return get_actual_currency
+    
+
+    def get_currency_parsing_left_panel(self):
+        result = self.model.select_currency_parsing_left_panel()
+        return result
+
+
     def try_delete_card(self, card_id):
         result = self.model.can_delete_card(card_id)
         if result == None:
@@ -179,14 +194,6 @@ class FinanceController:
         self.view.refresh_counteragents()
 
 
-    def get_currency_amount(self):
-        currency_amount = self.view.get_information_type_currency()
-        if currency_amount is None:
-            print("Валюта невалидна")
-        else:
-            print(f"Текущая валюта: {currency_amount}")
-
-
     def submit_update_personal_card_transaction(self, card_id):
         self.actual_id = card_id
         result = self.model.select_transaction_personal_id(card_id,self.user_id)
@@ -265,7 +272,13 @@ class FinanceController:
             deleted = self.model.delete_subcategory(name,item_id)
         self.view.refresh_counteragents()
         return deleted
+    
 
+
+    def submit_currency_parsing_left_panel(self,name_currency,type_currency):
+        result = self.model.add_currency_parsing_left_panel(name_currency,type_currency)
+        print(result)
+    
 
     def update_info_delete_conagent_category_subcategory(self,item_id,type_item):
         transactions = self.model.check_for_transactions(item_id, type_item)
@@ -320,3 +333,9 @@ class FinanceController:
     def is_card_name_exist(self, name):
         return self.model.is_card_name_exist(name)
 
+
+    def change_main_currency(self, new_currency):
+
+        self.model.add_db_actualy_amount(new_currency, 1)
+
+        self.model.recalculate_left_panel(new_currency)

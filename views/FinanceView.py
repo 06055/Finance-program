@@ -1326,6 +1326,7 @@ class FinanceView(Tk):
         delete_btn = Button(button_frame, text="Видалити", command=lambda card_id = card_id: self.controller_root.try_delete_card(card_id), bg="#FF7F7F", font=("Arial", 10), width=20)
         delete_btn.pack(side="right", padx=10)
 
+
     def fill_treeview(self, tr_card):
         for row in self.tree.get_children():
             self.tree.delete(row)
@@ -1333,6 +1334,7 @@ class FinanceView(Tk):
         for index, transaction in enumerate(tr_card):
             background_tag = "evenrow" if index % 2 == 0 else "oddrow"
             self.tree.insert("", "end", values=transaction[1:], tags=(background_tag), iid=transaction[0])
+
 
     def window_dollar_on_plus_click(self):
         self.create_middle_window()
@@ -1355,68 +1357,91 @@ class FinanceView(Tk):
         value = self.entry_iso_currency_input.get()
         self.get_check_valid_currency(value)
 
-        self.controller_root.get_currency_amount()
-
 
     def get_check_valid_currency(self, entry_iso_currency):
-        """ЗАМЕНИТЬ НА ПРОВЕРКУ ВАЛЮТ КОТОРЫЕ ЕСТЬ В ИНЕТЕ(ПРОЩЕ ГОВОРЯ ПОЛУЧИТЬ СПИСОК СУЩЕСТВУЮЩИХ ВАЛЮТ)"""
-        list_currency = ['USD', 'UAH', 'EUR']
-        entry_iso_currency = str(entry_iso_currency).strip().upper()
-        if entry_iso_currency in list_currency:
-            self.entry_iso_currency = entry_iso_currency
-        else:
-            self.entry_iso_currency = None
+        currency_value = self.controller_root.get_select_actualy_amount()
+        base_currency = currency_value[1] 
+
+        result = self.currency_parsing(entry_iso_currency, base_currency)
+
+        if result is None:
+            messagebox.showerror(
+                'Помилка',
+                f"Такого типу валюти не знайдено!: {entry_iso_currency}"
+            )
+            return
+
+        added_currency, rate = result
+        # print(f"1 {added_currency} = {rate} {base_currency}")
+        self.controller_root.submit_currency_parsing_left_panel(added_currency,rate)
+
         self.clear_widgets()
         self.refresh_dollar()
 
 
+    def currency_parsing(self, name_currency, base_currency):
+        name_currency = name_currency.strip().upper()
+        base_currency = base_currency.strip().upper()
+        url = f"https://open.er-api.com/v6/latest/{name_currency}"
 
-    def get_information_type_currency(self):
-        """
-        1.Создать вывод валют в левом окне
-        2.СОЗДАТЬ БУФЕРКУ В КОТОРУЮ БУДУТ ЛОЖИТСЯ ВАЛЮТЫ И СРАВНИВАТЬСЯ 
-        3.СОЗДАТЬ ОКНО ДЛЯ ДОБАВЛЕНИЯ НОВЫХ ВАЛЮТ с проверкой на ошибку
-        """
-        return getattr(self, "entry_iso_currency", None)
+        try:
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+
+            if "rates" not in data:
+                return None
+
+            rate = data["rates"].get(base_currency)
+            if rate is None:
+                return None
+
+            return name_currency, rate
+
+        except requests.RequestException:
+            return None
 
 
     def window_dollars(self):
         self.creater_window()
         self.container_frame = Frame(self, height=50, bg="#D3D3D3")
         self.container_frame.pack(fill="x")
+        self.get_currency_list_amought = self.controller_root.get_currency_parsing_left_panel()
+        self.left_panel = Frame(self, height=900, width=350, bg="#B1B1B1")
+        self.left_panel.pack(side=LEFT, fill="y")
 
-        self.amount_currency = Frame(self, height=900, width=400, bg="#B1B1B1")
-        self.amount_currency.pack(side=LEFT, fill="y")
+        for k, v in self.get_currency_list_amought.items():
+            row_frame = Frame(self.left_panel, bg="#B1B1B1")
+            row_frame.pack(fill=X, padx=5, pady=5)
 
-        def get_api_rate(base: str, target: str) -> float | None:
-            url = f"https://open.er-api.com/v6/latest/{base}"
-            try:
-                response = requests.get(url, timeout=5)
-                data = response.json()
-                if data.get("result") == "success":
-                    rate = data["rates"].get(target)
-                    if rate:
-                        return rate
-                    else:
-                        print(f"Курс {target} не найден в ответе.")
-                        return None
-                else:
-                    print(f"Ошибка API: {data.get('error-type')}")
-                    return None
-            except Exception as e:
-                print(f"Ошибка при получении курса {base}->{target}: {e}")
-                return None
+            label = Label(
+                row_frame,
+                text=f"{k} {v}",
+                bg="#B1B1B1",
+                font=("Arial", 15, "bold"),
+                anchor="w"
+            )
+            label.pack(side=LEFT, expand=True, fill=X)
 
-        get_api_rate_core = ("USD","EUR","UAH")
-        self.get_api_rate_choiced = get_api_rate(get_api_rate_core[0],get_api_rate_core[2])
-        # self.get_api_rate_choiced = 41.313521
-        if self.get_api_rate_choiced is not None:
-            
-            print(f"Курс USD к UAH: {self.get_api_rate_choiced}")
-            
-        else:
-            
-            print("Ошибка: курс USD к UAH не получен.")
+            button = Button(
+                row_frame,
+                text="+",
+                font=("Arial", 12, "bold"),
+                command=lambda key=k,value=v: self.get_actual_currency(key,value)
+            )
+            button.pack(side=RIGHT)
+
+            black_line = Frame(self.left_panel, bg='black', height=2)
+            black_line.pack(fill=X)
+
+
+    def get_actual_currency(self,key,value):
+
+        if key:
+            self.controller_root.get_add_actual_currency(key,value)
+            self.controller_root.change_main_currency(key)
+            self.clear_widgets()
+            self.refresh_dollar()
 
 
     def window_statistic(self):
@@ -1707,8 +1732,6 @@ class FinanceView(Tk):
 
             ttk.Button(self.right_frame, text="Показати", command=draw_chart).pack(anchor="ne", padx=10, pady=10)
             draw_chart()
-
-
 
 
         def show_balance_over_time():

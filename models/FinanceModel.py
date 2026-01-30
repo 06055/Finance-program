@@ -2,7 +2,7 @@ import mysql.connector
 from datetime import datetime
 from tkinter import messagebox
 import re
-
+import requests
 
 class FinanceModel:
 
@@ -788,5 +788,121 @@ class FinanceModel:
         return True
 
 
+    def add_db_actualy_amount(self, money_type, money):
+        dbconfig = {
+            'host': '127.0.0.1',
+            'user': 'newusername',
+            'password': 'newpassword',
+            'db': 'home_finances'
+        }
+
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        cursor.execute("SELECT id FROM actually_type_currency LIMIT 1")
+        result = cursor.fetchone()
+
+        if result:
+
+            _SQL = """
+                UPDATE actually_type_currency
+                SET money_type = %s, money = %s
+                WHERE id = %s
+            """
+            cursor.execute(_SQL, (money_type, money, result[0]))
+        else:
+
+            _SQL = """
+                INSERT INTO actually_type_currency (money_type, money)
+                VALUES (%s, %s)
+            """
+            cursor.execute(_SQL, (money_type, money))
+
+        dbc.commit()
+        cursor.close()
+        dbc.close()
+
+        return "SUCCESS"
 
 
+    def select_actualy_amount(self):
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        _SQL = """SELECT * FROM actually_type_currency"""
+        cursor.execute(_SQL)
+
+        result = cursor.fetchone()
+
+        return result
+
+
+    def add_currency_parsing_left_panel(self,name_currency,type_currency):
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        _SQL = """INSERT INTO left_panel_dollar(name_currency,type_currency) VALUES(%s,%s)"""
+        cursor.execute(_SQL,(name_currency,type_currency,))
+        dbc.commit()
+        cursor.close()
+        dbc.close()
+        return "SUCCESS"
+
+
+    def select_currency_parsing_left_panel(self):
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        _SQL = "SELECT name_currency, type_currency FROM left_panel_dollar"
+        cursor.execute(_SQL)
+
+        rows = cursor.fetchall()
+
+        cursor.close()
+        dbc.close()
+
+        result = {name: float(rate) for name, rate in rows}
+
+        return result
+
+
+    def recalculate_left_panel(self, new_base_currency):
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        cursor.execute("SELECT id, name_currency FROM left_panel_dollar")
+        rows = cursor.fetchall()
+
+        if not rows:
+            cursor.close()
+            dbc.close()
+            return
+
+        url = f"https://open.er-api.com/v6/latest/{new_base_currency}"
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+
+        rates = data.get("rates")
+        if not rates:
+            cursor.close()
+            dbc.close()
+            return
+
+        for row_id, currency in rows:
+            rate = rates.get(currency)
+            if rate is None:
+                continue
+
+            cursor.execute(
+                "UPDATE left_panel_dollar SET type_currency = %s WHERE id = %s",
+                (rate, row_id)
+            )
+
+        dbc.commit()
+        cursor.close()
+        dbc.close()
