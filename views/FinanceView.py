@@ -1,25 +1,30 @@
 import tkinter as tk
-from tkinter import *
+from tkinter import (
+    Tk, Canvas, Frame, Scrollbar, Label, Button,
+    VERTICAL, RIGHT, LEFT, Y, X, BOTH,
+    StringVar, OptionMenu,
+    filedialog, messagebox, colorchooser, font
+)
 from tkinter import ttk
-from tkinter import filedialog, messagebox
-from tkinter import colorchooser
-from tkinter import StringVar, OptionMenu
-from tkinter import font
-from tkinter import Tk, Canvas, Frame, Scrollbar, Label, Button, VERTICAL, RIGHT, LEFT, Y
 from tkcalendar import Calendar
 from datetime import datetime, timedelta
-from PIL import Image, ImageTk, ImageOps, ImageStat
+import PIL.Image as PILImage
+import PIL.ImageTk as PILImageTk
+from PIL import ImageOps, ImageStat
 import os
 import shutil
 import pandas as pd
 import matplotlib
 import matplotlib.dates
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+import matplotlib.pyplot as plt
 import mplcursors
 import requests
 from bs4 import BeautifulSoup
+
+
+
 
 
 class FinanceView(Tk):
@@ -123,8 +128,8 @@ class FinanceView(Tk):
                         image_path = os.path.join(images_folder, filename)
                         self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
                         self.canvas.pack(side='left')
-                        image = Image.open(image_path)
-                        photo_icon = ImageTk.PhotoImage(image)
+                        image = PILImage.open(image_path)
+                        photo_icon = PILImageTk.PhotoImage(image)
                         self.images.append(image)  
                         self.photo_icons.append(photo_icon)  
                         self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
@@ -140,8 +145,8 @@ class FinanceView(Tk):
                         image_path = os.path.join(images_folder, filename)
                         self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
                         self.canvas.pack(side='left')
-                        image = Image.open(image_path)
-                        photo_icon = ImageTk.PhotoImage(image)
+                        image = PILImage.open(image_path)
+                        photo_icon = PILImageTk.PhotoImage(image)
                         self.images.append(image)  
                         self.photo_icons.append(photo_icon)  
                         self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
@@ -157,8 +162,8 @@ class FinanceView(Tk):
                         image_path = os.path.join(images_folder, filename)
                         self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
                         self.canvas.pack(side='left')
-                        image = Image.open(image_path)
-                        photo_icon = ImageTk.PhotoImage(image)
+                        image = PILImage.open(image_path)
+                        photo_icon = PILImageTk.PhotoImage(image)
                         self.images.append(image)  
                         self.photo_icons.append(photo_icon)  
                         self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
@@ -174,8 +179,8 @@ class FinanceView(Tk):
                         image_path = os.path.join(images_folder, filename)
                         self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
                         self.canvas.pack(side='left')
-                        image = Image.open(image_path)
-                        photo_icon = ImageTk.PhotoImage(image)
+                        image = PILImage.open(image_path)
+                        photo_icon = PILImageTk.PhotoImage(image)
                         self.images.append(image)  
                         self.photo_icons.append(photo_icon)  
                         self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
@@ -188,8 +193,8 @@ class FinanceView(Tk):
                         image_path = os.path.join(images_folder, filename)
                         self.canvas = Canvas(self.container_frame, bg='#D3D3D3', height=70, width=75)
                         self.canvas.pack(side='left')
-                        image = Image.open(image_path).convert("RGBA")
-                        photo_icon = ImageTk.PhotoImage(image)
+                        image = PILImage.open(image_path).convert("RGBA")
+                        photo_icon = PILImageTk.PhotoImage(image)
                         self.images.append(image)  
                         self.photo_icons.append(photo_icon)  
                         self.canvas.create_image(40, 35, anchor='center', image=photo_icon)
@@ -206,7 +211,7 @@ class FinanceView(Tk):
 
 
     def create_middle_window(self):
-        self.new_window = Toplevel(self)
+        self.new_window = tk.Toplevel(self)
         self.new_window.grab_set()
         screen_width = self.winfo_screenwidth()
         screen_height = self.winfo_screenheight()
@@ -216,7 +221,7 @@ class FinanceView(Tk):
 
 
     def create_fullscreen_window(self):
-        self.new_window = Toplevel(self)
+        self.new_window = tk.Toplevel(self)
         self.new_window.grab_set()
 
         self.new_window.overrideredirect(True)  
@@ -397,7 +402,7 @@ class FinanceView(Tk):
         self.submit_button_open_file = tk.Button(self.new_window, text='Вибір картинку', command=self.open_file)
         self.submit_button_open_file.grid(row=7, column=0, pady=5, padx=20, sticky="w")
 
-        self.image_rgb = ImageTk.PhotoImage(file=r'C:\Finans_programm\images\image_buttom\rgb20.png')
+        self.image_rgb = PILImageTk.PhotoImage(file=r'C:\Finans_programm\images\image_buttom\rgb20.png')
         self.submit_buttom_color = ttk.Button(self.new_window, image=self.image_rgb, width=10, command=self.choose_color)
         self.submit_buttom_color.grid(row=7, column=0, pady=7, padx=120, sticky="w")
 
@@ -481,7 +486,7 @@ class FinanceView(Tk):
         self.label_name = Label(center_frame, text="Ім'я Контрагента", font=("Arial", 10))
         self.label_name.grid(row=0, column=0, pady=5, padx=10, sticky="w")
 
-        self.name_counterparty_entry = Entry(center_frame, font=("Arial", 10))
+        self.name_counterparty_entry = tk.Entry(center_frame, font=("Arial", 10))
         self.name_counterparty_entry.grid(row=1, column=0, pady=5, padx=10)
 
         self.submit_button_add_counterparty = Button(center_frame, text="Додати Контрагента", font=("Arial", 10))
@@ -501,7 +506,7 @@ class FinanceView(Tk):
         self.label_name = Label(center_frame, text="Ім'я Категорії", font=("Arial", 10))
         self.label_name.grid(row=0, column=0, pady=5, padx=10, sticky="w")
 
-        self.name_category_entry = Entry(center_frame, font=("Arial", 10))
+        self.name_category_entry = tk.Entry(center_frame, font=("Arial", 10))
         self.name_category_entry.grid(row=1, column=0, pady=5, padx=10)
 
         self.label_counterparty = Label(center_frame, text="Контрагент", font=("Arial", 10))
@@ -556,7 +561,7 @@ class FinanceView(Tk):
 
         self.label_name = Label(center_frame, width=20, text="Ім'я Підкатегорії", font=("Arial", 10))
         self.label_name.grid(row=4, column=0, pady=5, padx=10)
-        self.name_subcategory_entry = Entry(center_frame, font=("Arial", 10))
+        self.name_subcategory_entry = tk.Entry(center_frame, font=("Arial", 10))
         self.name_subcategory_entry.grid(row=5, column=0, pady=5, padx=10)
 
         self.submit_button_add_subcategory = Button(center_frame, text="Додати подкатегорию", font=("Arial", 10))
@@ -914,8 +919,8 @@ class FinanceView(Tk):
 
 
         def create_transparent_overlay(size, alpha=120):
-            overlay = Image.new("RGBA", size, (169, 169, 169, alpha))
-            return ImageTk.PhotoImage(overlay)
+            overlay = PILImage.new("RGBA", size, (169, 169, 169, alpha))
+            return PILImageTk.PhotoImage(overlay)
 
         overlay_image = create_transparent_overlay((380, 210))
 
@@ -943,10 +948,10 @@ class FinanceView(Tk):
 
             if bg_picture:
                 try:
-                    image = Image.open(bg_picture)
-                    image = ImageOps.fit(image, (380, 210), method=Image.Resampling.LANCZOS, centering=(0.5, 0.5))
+                    image = PILImage.open(bg_picture)
+                    image = ImageOps.fit(image, (380, 210), method=PILImage.Resampling.LANCZOS, centering=(0.5, 0.5))
                     text_color = self.get_inverse_color(image)
-                    background_image = ImageTk.PhotoImage(image)
+                    background_image = PILImageTk.PhotoImage(image)
                     canvas_card.create_image(0, 0, image=background_image, anchor="nw")
                     card_frame.image = background_image
                 except Exception as e:
@@ -1079,8 +1084,8 @@ class FinanceView(Tk):
 
         card_name_currency = self.controller_root.update_card_name_currency()
 
-        add_tr_icon = PhotoImage(file="images/icons_for_personal_card/xplus.png")  
-        edit_delete_icon = PhotoImage(file="images/icons_for_personal_card/settings.png")  
+        add_tr_icon = PILImageTk.PhotoImage(file="images/icons_for_personal_card/xplus.png")  
+        edit_delete_icon = PILImageTk.PhotoImage(file="images/icons_for_personal_card/settings.png")  
 
         self.edit_delete_button = tk.Button(
             self.container_frame,
@@ -1182,24 +1187,24 @@ class FinanceView(Tk):
         entry_bg_color = bg_color
 
         if bg_picture:
-            image = Image.open(bg_picture)
+            image = PILImage.open(bg_picture)
             if image.mode != "RGB":
                 image = image.convert("RGB")
 
-            image = ImageOps.fit(image, (CARD_WIDTH, CARD_HEIGHT), method=Image.Resampling.LANCZOS)
+            image = ImageOps.fit(image, (CARD_WIDTH, CARD_HEIGHT), method=PILImage.Resampling.LANCZOS)
             stat = ImageStat.Stat(image)
             r, g, b = map(int, stat.mean[:3])
             entry_bg_color = f"#{r:02x}{g:02x}{b:02x}"
             brightness = r * 0.299 + g * 0.587 + b * 0.114
             text_color = "black" if brightness > 127 else "white"
 
-            background_image = ImageTk.PhotoImage(image)
+            background_image = PILImageTk.PhotoImage(image)
             canvas_card.create_image(0, 0, image=background_image, anchor="nw")
             card_frame.image = background_image
 
         if status is None:
-            overlay = Image.new("RGBA", (CARD_WIDTH, CARD_HEIGHT), (169, 169, 169, 100))
-            overlay_img = ImageTk.PhotoImage(overlay)
+            overlay = PILImage.new("RGBA", (CARD_WIDTH, CARD_HEIGHT), (169, 169, 169, 100))
+            overlay_img = PILImageTk.PhotoImage(overlay)
             canvas_card.create_image(0, 0, image=overlay_img, anchor="nw")
             card_frame.overlay = overlay_img
 
@@ -1258,17 +1263,17 @@ class FinanceView(Tk):
                     except:
                         pass  
 
-        entry_name = Entry(card_frame, **entry_style)
+        entry_name = PILImage(card_frame, **entry_style)
         entry_name.insert(0, card_name)
         entry_name.place(x=25, y=35, width=200)
 
-        entry_date = Entry(card_frame, **entry_style)
+        entry_date = PILImage(card_frame, **entry_style)
         formatted_date = data_made if isinstance(data_made, str) else data_made.strftime("%d-%m-%Y")
         entry_date.insert(0, formatted_date)
         entry_date.place(x=25, y=75, width=120)
         entry_date.bind("<KeyRelease>", validate_date_input)
 
-        entry_money = Entry(card_frame, **entry_style, justify="right")
+        entry_money = tk.Entry(card_frame, **entry_style, justify="right")
         entry_money.insert(0, str(count_money))
         entry_money.place(x=330, y=210, width=100, anchor="e")
 
@@ -1341,7 +1346,7 @@ class FinanceView(Tk):
         self.label_iso_currency = Label(self.new_window, text="Введіть ISO валюти", font=("Arial", 10))
         self.label_iso_currency.pack()
 
-        self.entry_iso_currency_input = Entry(self.new_window, font=("Arial", 10))
+        self.entry_iso_currency_input = tk.Entry(self.new_window, font=("Arial", 10))
         self.entry_iso_currency_input.pack()
 
         self.submit_iso_currency = Button(
@@ -1362,7 +1367,7 @@ class FinanceView(Tk):
         currency_value = self.controller_root.get_select_actualy_amount()
         base_currency = currency_value[1] 
 
-        result = self.currency_parsing(entry_iso_currency, base_currency)
+        result = self.controller_root.tool_currency_parsing(entry_iso_currency, base_currency)
 
         if result is None:
             messagebox.showerror(
@@ -1379,69 +1384,159 @@ class FinanceView(Tk):
         self.refresh_dollar()
 
 
-    def currency_parsing(self, name_currency, base_currency):
-        name_currency = name_currency.strip().upper()
-        base_currency = base_currency.strip().upper()
-        url = f"https://open.er-api.com/v6/latest/{name_currency}"
-
-        try:
-            response = requests.get(url, timeout=5)
-            response.raise_for_status()
-            data = response.json()
-
-            if "rates" not in data:
-                return None
-
-            rate = data["rates"].get(base_currency)
-            if rate is None:
-                return None
-
-            return name_currency, rate
-
-        except requests.RequestException:
-            return None
-
-
     def window_dollars(self):
         self.creater_window()
+
         self.container_frame = Frame(self, height=50, bg="#D3D3D3")
         self.container_frame.pack(fill="x")
-        self.get_currency_list_amought = self.controller_root.get_currency_parsing_left_panel()
-        self.left_panel = Frame(self, height=900, width=350, bg="#B1B1B1")
+
+        currency_value = self.controller_root.get_select_actualy_amount()
+        self.base_currency = currency_value[1]
+
+        updated = self.controller_root.refresh_all_currencies(self.base_currency)
+
+        if not updated:
+            messagebox.showwarning(
+                "Немає інтернету",
+                "Не вдалося оновити курси валют.\n"
+                "Використовуються збережені значення."
+            )
+
+        currencies = self.controller_root.get_currency_parsing_left_panel()
+
+        main_frame = Frame(self, bg="#E0E0E0")
+        main_frame.pack(fill=BOTH, expand=True)
+
+        self.left_panel = Frame(main_frame, width=300, bg="#B1B1B1")
         self.left_panel.pack(side=LEFT, fill="y")
 
-        for k, v in self.get_currency_list_amought.items():
-            row_frame = Frame(self.left_panel, bg="#B1B1B1")
-            row_frame.pack(fill=X, padx=5, pady=5)
+        for k, v in currencies.items():
+            if k == self.base_currency:
+                continue
 
-            label = Label(
-                row_frame,
+            row = Frame(self.left_panel, bg="#B1B1B1")
+            row.pack(fill=X, padx=6, pady=6)
+
+            Label(
+                row,
                 text=f"{k} {v}",
                 bg="#B1B1B1",
-                font=("Arial", 15, "bold"),
+                font=("Arial", 14, "bold"),
                 anchor="w"
-            )
-            label.pack(side=LEFT, expand=True, fill=X)
+            ).pack(side=LEFT, fill=X, expand=True)
 
-            button = Button(
-                row_frame,
+            Button(
+                row,
                 text="+",
-                font=("Arial", 12, "bold"),
-                command=lambda key=k,value=v: self.get_actual_currency(key,value)
-            )
-            button.pack(side=RIGHT)
+                width=3,
+                command=lambda key=k: self.change_main_currency(key)
+            ).pack(side=RIGHT)
 
-            black_line = Frame(self.left_panel, bg='black', height=2)
-            black_line.pack(fill=X)
+            Frame(self.left_panel, bg="black", height=2).pack(fill=X)
+
+        self.right_panel = Frame(main_frame, bg="#E0E0E0")
+        self.right_panel.pack(side=LEFT, fill=BOTH, expand=True)
+
+        self.active_currency_frame = Frame(self.right_panel, bg="#E0E0E0")
+        self.active_currency_frame.pack(fill=X, padx=20, pady=10)
+
+        self.draw_active_currency(self.base_currency)
+
+        self.chart_frame = Frame(self.right_panel, bg="#CFCFCF")
+        self.chart_frame.pack(fill=BOTH, expand=True, padx=20, pady=20)
+
+        # self.draw_currency_chart(self.base_currency)
+
+
+    def change_main_currency(self, new_currency):
+        self.controller_root.get_add_actual_currency(new_currency, 1)
+        self.base_currency = new_currency
+
+        for widget in self.active_currency_frame.winfo_children():
+            widget.destroy()
+
+        self.draw_active_currency(new_currency)
+
+        for widget in self.chart_frame.winfo_children():
+            widget.destroy()
+
+        # self.draw_currency_chart(new_currency)
+
+
+    def draw_active_currency(self, currency):
+        Label(
+            self.active_currency_frame,
+            text=currency,
+            bg="#E0E0E0",
+            font=("Arial", 26, "bold"),
+            anchor="e"
+        ).pack(fill=X)
+
+        Frame(
+            self.active_currency_frame,
+            bg="black",
+            height=3
+        ).pack(fill=X, pady=(5, 0))
+
+        Label(
+            self.active_currency_frame,
+            text="Main currency",
+            bg="#E0E0E0",
+            fg="#555555",
+            font=("Arial", 10),
+            anchor="e"
+        ).pack(fill=X)
+
+
+    # def draw_currency_chart(self, currency):
+    #     dates, values = self.get_currency_history(currency)
+
+    #     fig = Figure(figsize=(6, 4), dpi=100)
+    #     ax = fig.add_subplot(111)
+
+    #     ax.plot(dates, values, linewidth=2)
+    #     ax.set_title(f"{currency} exchange rate")
+    #     ax.set_xlabel("Date")
+    #     ax.set_ylabel("Rate")
+    #     ax.grid(True, alpha=0.3)
+
+    #     canvas = FigureCanvasTkAgg(fig, master=self.chart_frame)
+    #     canvas.draw()
+    #     canvas.get_tk_widget().pack(fill=BOTH, expand=True)
+
+
+    # def get_currency_history(self, currency):
+    #     base = "USD"  
+    #     url = f"https://open.er-api.com/v6/latest/{base}"
+
+    #     try:
+    #         response = requests.get(url, timeout=5)
+    #         data = response.json()
+    #         rate = data["rates"].get(currency, 1)
+
+    #         today = datetime.now()
+    #         dates = []
+    #         values = []
+
+    #         for i in range(30):
+    #             day = today - timedelta(days=30 - i)
+    #             dates.append(day.strftime("%d.%m"))
+    #             values.append(rate)
+    #         return dates, values
+
+    #     except requests.RequestException:
+    #         return None
+
+
 
 
     def get_actual_currency(self,key,value):
-
         if key:
             self.controller_root.get_add_actual_currency(key,value)
             self.controller_root.change_main_currency(key)
             self.clear_widgets()
             self.refresh_dollar()
+
 
 
     def window_statistic(self):
@@ -2113,8 +2208,8 @@ class FinanceView(Tk):
         bottom_frame.grid_columnconfigure(1, weight=1)
         bottom_frame.grid_columnconfigure(2, weight=1)
 
-        edit_icon = PhotoImage(file="images/image_buttom/change.png")  
-        delete_icon = PhotoImage(file="images/image_buttom/dustbin.png")  
+        edit_icon = PILImageTk.PhotoImage(file="images/image_buttom/change.png")  
+        delete_icon = PILImageTk.PhotoImage(file="images/image_buttom/dustbin.png")  
 
         counteragent_data = [item_id, item_text]
         if "▼" in counteragent_data[1] or "▶" in counteragent_data[1]:

@@ -874,24 +874,24 @@ class FinanceModel:
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
+        try:
+            url = f"https://open.er-api.com/v6/latest/{new_base_currency}"
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+
+            rates = data.get("rates")
+            if not rates:
+                return False
+
+        except requests.RequestException:
+            return False
+
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
         cursor.execute("SELECT id, name_currency FROM left_panel_dollar")
         rows = cursor.fetchall()
-
-        if not rows:
-            cursor.close()
-            dbc.close()
-            return
-
-        url = f"https://open.er-api.com/v6/latest/{new_base_currency}"
-        response = requests.get(url, timeout=5)
-        response.raise_for_status()
-        data = response.json()
-
-        rates = data.get("rates")
-        if not rates:
-            cursor.close()
-            dbc.close()
-            return
 
         for row_id, currency in rows:
             rate = rates.get(currency)
@@ -902,6 +902,22 @@ class FinanceModel:
                 "UPDATE left_panel_dollar SET type_currency = %s WHERE id = %s",
                 (rate, row_id)
             )
+        dbc.commit()
+        cursor.close()
+        dbc.close()
+
+        return True
+
+
+    def update_main_currency(self, base_currency):
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
+
+        cursor.execute(
+            "UPDATE actually_type_currency SET money = %s WHERE money_type = %s",
+            (1, base_currency)
+        )
 
         dbc.commit()
         cursor.close()

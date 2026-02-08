@@ -1,4 +1,6 @@
 from tkinter import filedialog, messagebox
+import requests
+
 
 class FinanceController:
     def __init__(self, model, view):
@@ -101,6 +103,9 @@ class FinanceController:
     def get_select_actualy_amount(self):
         get_actual_currency = self.model.select_actualy_amount()
         return get_actual_currency
+
+
+        
     
 
     def get_currency_parsing_left_panel(self):
@@ -272,13 +277,12 @@ class FinanceController:
             deleted = self.model.delete_subcategory(name,item_id)
         self.view.refresh_counteragents()
         return deleted
-    
 
 
     def submit_currency_parsing_left_panel(self,name_currency,type_currency):
         result = self.model.add_currency_parsing_left_panel(name_currency,type_currency)
         print(result)
-    
+
 
     def update_info_delete_conagent_category_subcategory(self,item_id,type_item):
         transactions = self.model.check_for_transactions(item_id, type_item)
@@ -293,7 +297,6 @@ class FinanceController:
     def update_card_list(self):
         card_names = self.model.select_cars(self.user_id)
         return card_names
-
 
 
     def update_card_currency(self, selected_card):
@@ -337,5 +340,32 @@ class FinanceController:
     def change_main_currency(self, new_currency):
 
         self.model.add_db_actualy_amount(new_currency, 1)
-
         self.model.recalculate_left_panel(new_currency)
+
+
+    def refresh_all_currencies(self, base_currency):
+        return self.model.recalculate_left_panel(base_currency)
+
+
+    def tool_currency_parsing(self, name_currency, base_currency):
+        name_currency = name_currency.strip().upper()
+        base_currency = base_currency.strip().upper()
+
+        try:
+            url = f"https://open.er-api.com/v6/latest/{name_currency}"
+            response = requests.get(url, timeout=5)
+            response.raise_for_status()
+            data = response.json()
+
+            if "rates" not in data:
+                return None
+
+            rate = data["rates"].get(base_currency)
+            if rate is None:
+                return None
+
+            return name_currency, rate
+
+        except requests.RequestException:
+            
+            return None
