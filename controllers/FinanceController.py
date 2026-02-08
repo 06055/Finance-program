@@ -1,6 +1,7 @@
 from tkinter import filedialog, messagebox
 import requests
-
+import time
+from datetime import date, timedelta
 
 class FinanceController:
     def __init__(self, model, view):
@@ -11,6 +12,23 @@ class FinanceController:
         self.view.set_controller(self)
         self.view.submit_button_reg.config(command=self.submit_data_reg)
         self.view.submit_button_log.config(command=self.submit_data_show_log)
+        self.currencies_loaded = False   # флаг «загрузили ли мы курсы после входа»
+        self.rates_cache = None          # словарь курсов последний раз загруженных ({'USD': 1.0, ...})
+        self.last_rates_fetch_ts = None  # timestamp последнего fetch
+
+    def has_internet(self, check_base='USD', timeout=4):
+        """
+        Простая проверка интернета через API (легкая GET).
+        Возвращает True если доступен API.
+        """
+        try:
+            # Легкий запрос к тому же API, который вы используете.
+            url = f"https://open.er-api.com/v6/latest/{check_base}"
+            resp = requests.get(url, timeout=timeout)
+            resp.raise_for_status()
+            return True
+        except requests.RequestException:
+            return False
 
 
     def submit_data_reg(self):
@@ -95,22 +113,16 @@ class FinanceController:
         return self.model.select_cards_with_balance(self.user_id)
 
 
-    def get_add_actual_currency(self,key,value):
-        result = self.model.add_db_actualy_amount(key,value)
-        print(result)
-
+    def get_add_actual_currency(self, key, value):
+        return self.model.add_db_actualy_amount(key, value)
 
     def get_select_actualy_amount(self):
         get_actual_currency = self.model.select_actualy_amount()
         return get_actual_currency
 
 
-        
-    
-
     def get_currency_parsing_left_panel(self):
-        result = self.model.select_currency_parsing_left_panel()
-        return result
+        return self.model.select_currency_parsing_left_panel()
 
 
     def try_delete_card(self, card_id):
@@ -279,9 +291,8 @@ class FinanceController:
         return deleted
 
 
-    def submit_currency_parsing_left_panel(self,name_currency,type_currency):
-        result = self.model.add_currency_parsing_left_panel(name_currency,type_currency)
-        print(result)
+    def submit_currency_parsing_left_panel(self, name_currency, type_currency):
+        return self.model.add_currency_parsing_left_panel(name_currency, type_currency)
 
 
     def update_info_delete_conagent_category_subcategory(self,item_id,type_item):
@@ -338,18 +349,85 @@ class FinanceController:
 
 
     def change_main_currency(self, new_currency):
-
         self.model.add_db_actualy_amount(new_currency, 1)
         self.model.recalculate_left_panel(new_currency)
 
 
+    def fetch_rates(self, base_currency, timeout=6):
+        try:
+            url = f"https://open.er-api.com/v6/latest/{base_currency}"
+            resp = requests.get(url, timeout=timeout)
+            resp.raise_for_status()
+            data = resp.json()
+            rates = data.get("rates")
+            if not rates:
+                return None
+            return {k: float(v) for k, v in rates.items()}
+        except requests.RequestException:
+            return None
+
+
+    def ensure_currencies_loaded(self):
+        if self.currencies_loaded and self.rates_cache:
+            return True
+
+        actual = self.model.select_actualy_amount()
+        if not actual:
+            return False
+        base_currency = actual[1] 
+
+        if not self.has_internet(check_base=base_currency):
+            return False
+
+        rates = self.fetch_rates(base_currency)
+        if rates is None:
+            return False
+
+        ok = self.model.update_left_panel_rates(rates)
+        if ok:
+            self.rates_cache = rates
+            self.last_rates_fetch_ts = time.time()
+            self.currencies_loaded = True
+            return True
+        return False
+
+
+    def change_main_currency(self, new_currency):
+        self.model.add_db_actualy_amount(new_currency, 1)
+        self.model.update_main_currency(new_currency)
+        self.currencies_loaded = False
+        self.rates_cache = None
+
+
     def refresh_all_currencies(self, base_currency):
-        return self.model.recalculate_left_panel(base_currency)
+        if not self.has_internet(check_base=base_currency):
+            return False
+        rates = self.fetch_rates(base_currency)
+        if not rates:
+            return False
+        ok = self.model.update_left_panel_rates(rates)
+        if ok:
+            self.rates_cache = rates
+            self.currencies_loaded = True
+            self.last_rates_fetch_ts = time.time()
+            return True
+        return False
 
 
     def tool_currency_parsing(self, name_currency, base_currency):
         name_currency = name_currency.strip().upper()
         base_currency = base_currency.strip().upper()
+
+        if self.currencies_loaded and self.rates_cache:
+            rate = None
+            try:
+                if base_currency in self.rates_cache and name_currency in self.rates_cache:
+                    rate = self.rates_cache[base_currency] / self.rates_cache[name_currency]
+            except Exception:
+                rate = None
+
+            if rate is not None:
+                return name_currency, float(rate)
 
         try:
             url = f"https://open.er-api.com/v6/latest/{name_currency}"
@@ -364,8 +442,48 @@ class FinanceController:
             if rate is None:
                 return None
 
-            return name_currency, rate
+            return name_currency, float(rate)
 
         except requests.RequestException:
-            
+            return None
+
+
+    def change_base_currency_and_recalculate(self, new_currency):
+        self.model.add_db_actualy_amount(new_currency, 1)
+        self.model.update_main_currency(new_currency)
+
+        self.currencies_loaded = False
+        self.rates_cache = None
+
+        self.ensure_currencies_loaded()
+
+
+
+    def fetch_currency_history(self, base_currency, target_currency, days=30):
+        end_date = date.today()
+        start_date = end_date - timedelta(days=days)
+
+        url = (
+            f"https://api.frankfurter.app/"
+            f"{start_date}..{end_date}"
+            f"?from={base_currency}&to={target_currency}"
+        )
+
+        try:
+            response = requests.get(url, timeout=4)
+            response.raise_for_status()
+            data = response.json()
+
+            rates = data.get("rates")
+            if not rates:
+                return None
+
+            history = [
+                (day, values[target_currency])
+                for day, values in sorted(rates.items())
+            ]
+
+            return history
+
+        except requests.RequestException:
             return None

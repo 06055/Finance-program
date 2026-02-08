@@ -19,6 +19,7 @@ import matplotlib.dates
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import mplcursors
 import requests
 from bs4 import BeautifulSoup
@@ -687,6 +688,7 @@ class FinanceView(Tk):
             self.nametowidget(fname).destroy()
         self.window_dollars()
         self.load_icons('window_dollar', self.controller_root.title_icons)
+
 
     def refresh_personal_transaction(self,tr_card):
         all_frames = [f for f in self.children]
@@ -1377,7 +1379,6 @@ class FinanceView(Tk):
             return
 
         added_currency, rate = result
-        # print(f"1 {added_currency} = {rate} {base_currency}")
         self.controller_root.submit_currency_parsing_left_panel(added_currency,rate)
 
         self.clear_widgets()
@@ -1386,32 +1387,34 @@ class FinanceView(Tk):
 
     def window_dollars(self):
         self.creater_window()
-
         self.container_frame = Frame(self, height=50, bg="#D3D3D3")
         self.container_frame.pack(fill="x")
 
         currency_value = self.controller_root.get_select_actualy_amount()
+        if not currency_value:
+            messagebox.showerror("Помилка", "Не вдалося отримати основну валюту")
+            return
+
         self.base_currency = currency_value[1]
 
-        updated = self.controller_root.refresh_all_currencies(self.base_currency)
+        updated = self.controller_root.ensure_currencies_loaded()
 
         if not updated:
             messagebox.showwarning(
                 "Немає інтернету",
-                "Не вдалося оновити курси валют.\n"
+                "Курси валют не оновлено.\n"
                 "Використовуються збережені значення."
             )
 
         currencies = self.controller_root.get_currency_parsing_left_panel()
-
         main_frame = Frame(self, bg="#E0E0E0")
         main_frame.pack(fill=BOTH, expand=True)
 
         self.left_panel = Frame(main_frame, width=300, bg="#B1B1B1")
         self.left_panel.pack(side=LEFT, fill="y")
 
-        for k, v in currencies.items():
-            if k == self.base_currency:
+        for currency, rate in currencies.items():
+            if currency == self.base_currency:
                 continue
 
             row = Frame(self.left_panel, bg="#B1B1B1")
@@ -1419,7 +1422,7 @@ class FinanceView(Tk):
 
             Label(
                 row,
-                text=f"{k} {v}",
+                text=f"{currency} {rate}",
                 bg="#B1B1B1",
                 font=("Arial", 14, "bold"),
                 anchor="w"
@@ -1429,7 +1432,7 @@ class FinanceView(Tk):
                 row,
                 text="+",
                 width=3,
-                command=lambda key=k: self.change_main_currency(key)
+                command=lambda key=currency: self.change_main_currency(key)
             ).pack(side=RIGHT)
 
             Frame(self.left_panel, bg="black", height=2).pack(fill=X)
@@ -1442,25 +1445,98 @@ class FinanceView(Tk):
 
         self.draw_active_currency(self.base_currency)
 
+        # ===== Панель управления графиком =====
+        control_frame = Frame(self.right_panel, bg="#E0E0E0")
+        control_frame.pack(fill=X, padx=20, pady=(5, 0))
+
+        Label(control_frame, text="Валюта:", bg="#E0E0E0").pack(side=LEFT)
+
+        available_currencies = [
+            c for c in currencies.keys()
+            if c != self.base_currency
+        ]
+
+        # если нет валют — просто не рисуем график
+        if not available_currencies:
+            Label(
+                self.right_panel,
+                text="Додайте іншу валюту для графіку",
+                bg="#E0E0E0",
+                fg="gray",
+                font=("Arial", 12)
+            ).pack(pady=20)
+            return
+
+        self.chart_currency_var = tk.StringVar(value=available_currencies[0])
+
+        currency_box = ttk.Combobox(
+            control_frame,
+            values=available_currencies,
+            textvariable=self.chart_currency_var,
+            state="readonly",
+            width=8
+        )
+        currency_box.pack(side=LEFT, padx=5)
+
+        Label(control_frame, text="Днів:", bg="#E0E0E0").pack(side=LEFT)
+
+        self.chart_days_var = tk.IntVar(value=30)
+
+        days_box = ttk.Combobox(
+            control_frame,
+            values=[7, 14, 30, 90, 180, 365],
+            textvariable=self.chart_days_var,
+            state="readonly",
+            width=6
+        )
+        days_box.pack(side=LEFT, padx=5)
+
+        Label(control_frame, text="Колір:", bg="#E0E0E0").pack(side=LEFT)
+
+        self.chart_color_var = tk.StringVar(value="red")
+
+        color_box = ttk.Combobox(
+            control_frame,
+            values=["red", "blue", "green", "black", "orange"],
+            textvariable=self.chart_color_var,
+            state="readonly",
+            width=8
+        )
+        color_box.pack(side=LEFT, padx=5)
+
+        Button(
+            control_frame,
+            text="Показати",
+            command=lambda: self.draw_currency_chart(
+                self.chart_currency_var.get(),
+                self.chart_days_var.get(),
+                self.chart_color_var.get()
+            )
+        ).pack(side=LEFT, padx=10)
+
+
+        # ===== Frame для графика =====
         self.chart_frame = Frame(self.right_panel, bg="#CFCFCF")
         self.chart_frame.pack(fill=BOTH, expand=True, padx=20, pady=20)
 
-        # self.draw_currency_chart(self.base_currency)
+        self.draw_currency_chart(
+            self.chart_currency_var.get(),
+            self.chart_days_var.get(),
+            self.chart_color_var.get()
+        )
+
+
+        for currency in currencies:
+            if currency != self.base_currency:
+                self.draw_currency_chart(currency)
+                break
+
 
 
     def change_main_currency(self, new_currency):
-        self.controller_root.get_add_actual_currency(new_currency, 1)
-        self.base_currency = new_currency
+        self.controller_root.change_base_currency_and_recalculate(new_currency)
+        self.refresh_dollar()
 
-        for widget in self.active_currency_frame.winfo_children():
-            widget.destroy()
-
-        self.draw_active_currency(new_currency)
-
-        for widget in self.chart_frame.winfo_children():
-            widget.destroy()
-
-        # self.draw_currency_chart(new_currency)
 
 
     def draw_active_currency(self, currency):
@@ -1488,44 +1564,58 @@ class FinanceView(Tk):
         ).pack(fill=X)
 
 
-    # def draw_currency_chart(self, currency):
-    #     dates, values = self.get_currency_history(currency)
+    def draw_currency_chart(self, target_currency, days=30, color="red"):
+        for widget in self.chart_frame.winfo_children():
+            widget.destroy()
 
-    #     fig = Figure(figsize=(6, 4), dpi=100)
-    #     ax = fig.add_subplot(111)
+        history = self.controller_root.fetch_currency_history(
+            self.base_currency,
+            target_currency,
+            days
+        )
 
-    #     ax.plot(dates, values, linewidth=2)
-    #     ax.set_title(f"{currency} exchange rate")
-    #     ax.set_xlabel("Date")
-    #     ax.set_ylabel("Rate")
-    #     ax.grid(True, alpha=0.3)
+        if not history:
+            Label(
+                self.chart_frame,
+                text="Немає підключення до інтернету або даних",
+                font=("Arial", 14, "bold"),
+                fg="gray",
+                bg="#CFCFCF"
+            ).place(relx=0.5, rely=0.5, anchor="center")
+            return
 
-    #     canvas = FigureCanvasTkAgg(fig, master=self.chart_frame)
-    #     canvas.draw()
-    #     canvas.get_tk_widget().pack(fill=BOTH, expand=True)
+        dates = [datetime.strptime(d, "%Y-%m-%d") for d, _ in history]
+        values = [v for _, v in history]
 
+        fig = Figure(figsize=(6, 4), dpi=100)
+        ax = fig.add_subplot(111)
 
-    # def get_currency_history(self, currency):
-    #     base = "USD"  
-    #     url = f"https://open.er-api.com/v6/latest/{base}"
+        ax.plot(dates, values, color=color, linewidth=2, label="Курс")
+        ax.scatter(dates, values, color=color, s=10)
 
-    #     try:
-    #         response = requests.get(url, timeout=5)
-    #         data = response.json()
-    #         rate = data["rates"].get(currency, 1)
+        ax.set_title(f"{target_currency} / {self.base_currency}")
+        ax.set_xlabel("Дата")
+        ax.set_ylabel("Курс")
+        ax.grid(True, alpha=0.3)
+        ax.legend()
 
-    #         today = datetime.now()
-    #         dates = []
-    #         values = []
+        if days <= 14:
+            ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
+        elif days <= 30:
+            ax.xaxis.set_major_locator(mdates.DayLocator(interval=3))
+        elif days <= 90:
+            ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
+        elif days <= 180:
+            ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
+        else:  
+            ax.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
 
-    #         for i in range(30):
-    #             day = today - timedelta(days=30 - i)
-    #             dates.append(day.strftime("%d.%m"))
-    #             values.append(rate)
-    #         return dates, values
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m.%Y'))
+        fig.autofmt_xdate(rotation=30)
 
-    #     except requests.RequestException:
-    #         return None
+        canvas = FigureCanvasTkAgg(fig, master=self.chart_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=BOTH, expand=True)
 
 
 
@@ -1536,7 +1626,6 @@ class FinanceView(Tk):
             self.controller_root.change_main_currency(key)
             self.clear_widgets()
             self.refresh_dollar()
-
 
 
     def window_statistic(self):

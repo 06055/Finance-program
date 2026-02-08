@@ -276,7 +276,7 @@ class FinanceModel:
 
     @staticmethod
     def add_counterparty(name,user_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -290,7 +290,7 @@ class FinanceModel:
 
     @staticmethod
     def select_counterparties(user_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -305,7 +305,7 @@ class FinanceModel:
 
     @staticmethod
     def add_category(name, parent_id,user_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -320,7 +320,7 @@ class FinanceModel:
     
     @staticmethod
     def select_category(user_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
         _SQL = """SELECT id, name, parent_id FROM categories WHERE user_id = %s"""
@@ -335,7 +335,7 @@ class FinanceModel:
 
     @staticmethod
     def select_category_for_subcategory(user_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -350,7 +350,7 @@ class FinanceModel:
 
     @staticmethod
     def add_subcategory(name,parent_id,user_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -364,7 +364,7 @@ class FinanceModel:
 
     @staticmethod
     def select_subcategory(user_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -379,7 +379,7 @@ class FinanceModel:
 
     @staticmethod
     def add_transaction(counteragent, category, subcategory, type_transaction, amount, currency, card, date, user_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
         try:
@@ -413,7 +413,7 @@ class FinanceModel:
 
     @staticmethod
     def select_transaction(user_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -426,7 +426,7 @@ class FinanceModel:
         return result
 
     def is_card_name_exist(self, name):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -440,7 +440,7 @@ class FinanceModel:
     @staticmethod
     def select_transaction_personal_id(card_id,user_id):
         
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -460,7 +460,7 @@ class FinanceModel:
 
     @staticmethod
     def select_name_currency_card(card_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -477,7 +477,7 @@ class FinanceModel:
 
     @staticmethod
     def select_info_from_id_transaction(id_tr):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -494,7 +494,7 @@ class FinanceModel:
 
     @staticmethod
     def update_transaction_info(id_tr, counteragent, category, subcategory, type_transaction, amount, currency, choisecard_menu, date, selected_before_card):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -540,7 +540,7 @@ class FinanceModel:
 
     @staticmethod
     def select_counterpart_info(counterpart_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -555,7 +555,7 @@ class FinanceModel:
 
 
     def select_subcategories_by_category(self,category_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
         
@@ -570,7 +570,7 @@ class FinanceModel:
 
 
     def delete_transaction(self,transaction_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -599,7 +599,7 @@ class FinanceModel:
 
 
     def check_for_transactions(self,item_id, type_item):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -633,7 +633,7 @@ class FinanceModel:
 
 
     def update_counteragent(self, name, item_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -654,7 +654,7 @@ class FinanceModel:
 
 
     def update_category(self, name, item_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -674,7 +674,7 @@ class FinanceModel:
 
 
     def update_subcategory(self, name, item_id):
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -696,7 +696,7 @@ class FinanceModel:
     def delete_counteragent(self, name,item_id):
         name = name.strip()
 
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -729,7 +729,7 @@ class FinanceModel:
     def delete_category(self, name, item_id):
         name = name.strip()
 
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -763,7 +763,7 @@ class FinanceModel:
     def delete_subcategory(self, name,item_id):
         name = name.strip()
 
-        dbconfig = {'host': '127.0.0.1', 'user': 'newusername', 'password': 'newpassword', 'db': 'home_finances'}
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -789,13 +789,7 @@ class FinanceModel:
 
 
     def add_db_actualy_amount(self, money_type, money):
-        dbconfig = {
-            'host': '127.0.0.1',
-            'user': 'newusername',
-            'password': 'newpassword',
-            'db': 'home_finances'
-        }
-
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
@@ -803,7 +797,6 @@ class FinanceModel:
         result = cursor.fetchone()
 
         if result:
-
             _SQL = """
                 UPDATE actually_type_currency
                 SET money_type = %s, money = %s
@@ -811,7 +804,6 @@ class FinanceModel:
             """
             cursor.execute(_SQL, (money_type, money, result[0]))
         else:
-
             _SQL = """
                 INSERT INTO actually_type_currency (money_type, money)
                 VALUES (%s, %s)
@@ -821,7 +813,6 @@ class FinanceModel:
         dbc.commit()
         cursor.close()
         dbc.close()
-
         return "SUCCESS"
 
 
@@ -830,11 +821,11 @@ class FinanceModel:
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
 
-        _SQL = """SELECT * FROM actually_type_currency"""
+        _SQL = "SELECT * FROM actually_type_currency LIMIT 1"
         cursor.execute(_SQL)
-
         result = cursor.fetchone()
-
+        cursor.close()
+        dbc.close()
         return result
 
 
@@ -855,21 +846,16 @@ class FinanceModel:
         dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
-
         _SQL = "SELECT name_currency, type_currency FROM left_panel_dollar"
         cursor.execute(_SQL)
-
         rows = cursor.fetchall()
-
         cursor.close()
         dbc.close()
-
         result = {name: float(rate) for name, rate in rows}
-
         return result
 
 
-    def recalculate_left_panel(self, new_base_currency):
+    def recalculate_left_panel(self,new_base_currency):
         dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
@@ -909,16 +895,36 @@ class FinanceModel:
         return True
 
 
-    def update_main_currency(self, base_currency):
+    def update_left_panel_rates(self,rates: dict):
         dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
         dbc = mysql.connector.connect(**dbconfig)
         cursor = dbc.cursor()
+        cursor.execute("SELECT id, name_currency FROM left_panel_dollar")
+        rows = cursor.fetchall()
 
+        for row_id, currency in rows:
+            rate = rates.get(currency)
+            if rate is None:
+                continue
+            cursor.execute(
+                "UPDATE left_panel_dollar SET type_currency = %s WHERE id = %s",
+                (rate, row_id)
+            )
+        dbc.commit()
+        cursor.close()
+        dbc.close()
+        return True
+
+
+    def update_main_currency(self,base_currency):
+        dbconfig = {'host':'127.0.0.1','user':'newusername','password':'newpassword','db':'home_finances'}
+        dbc = mysql.connector.connect(**dbconfig)
+        cursor = dbc.cursor()
         cursor.execute(
             "UPDATE actually_type_currency SET money = %s WHERE money_type = %s",
             (1, base_currency)
         )
-
         dbc.commit()
         cursor.close()
         dbc.close()
+        return "SUCCESS"
