@@ -24,6 +24,11 @@ import mplcursors
 import requests
 from bs4 import BeautifulSoup
 
+try:
+    from babel.numbers import get_currency_name as babel_get_currency_name
+except Exception:
+    babel_get_currency_name = None
+
 
 
 
@@ -35,6 +40,8 @@ class FinanceView(Tk):
         self.geometry('800x600+255+100')
         self.controller_root = None
         self.selected_picture_or_color = None
+        self.project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+        self.images_dir = os.path.join(self.project_dir, 'images')
 
     def window_reg(self,message = ' '):
         self.message_label = ttk.Label(self, text=message, font=("Arial", 12))
@@ -118,8 +125,83 @@ class FinanceView(Tk):
             self.controller_root = controller
 
 
+    def get_image_path(self, *parts):
+        return os.path.join(self.images_dir, *parts)
+
+
+    def resolve_image_path(self, image_path):
+        if not image_path:
+            return None
+
+        if os.path.exists(image_path):
+            return image_path
+
+        normalized_path = image_path.replace("\\", "/")
+        if "images/" in normalized_path:
+            image_part = normalized_path.split("images/", 1)[1]
+            image_part = image_part.split("/")
+            possible_path = os.path.join(self.images_dir, *image_part)
+            if os.path.exists(possible_path):
+                return possible_path
+
+        possible_path = os.path.join(self.project_dir, image_path)
+        if os.path.exists(possible_path):
+            return possible_path
+
+        file_name = os.path.basename(image_path)
+        for folder_name in ('background_card', 'icons', 'image_buttom', 'icons_for_personal_card'):
+            possible_path = self.get_image_path(folder_name, file_name)
+            if os.path.exists(possible_path):
+                return possible_path
+
+        return image_path
+
+
+    def get_unique_file_path(self, folder, file_name):
+        os.makedirs(folder, exist_ok=True)
+        name, extension = os.path.splitext(file_name)
+        destination_path = os.path.join(folder, file_name)
+        index = 1
+
+        while os.path.exists(destination_path):
+            destination_path = os.path.join(folder, f"{name}_{index}{extension}")
+            index += 1
+
+        return destination_path
+
+
+    def get_available_currency_options(self):
+        try:
+            options = self.controller_root.get_available_currencies()
+        except Exception:
+            options = []
+
+        result = []
+        for currency in options:
+            currency = str(currency).strip().upper()
+            if currency and currency not in result:
+                result.append(currency)
+
+        return result or ["USD"]
+
+
+    def get_colored_icon(self, image_path, color):
+        image = PILImage.open(image_path).convert("RGBA")
+        color = color.lstrip("#")
+        red = int(color[0:2], 16)
+        green = int(color[2:4], 16)
+        blue = int(color[4:6], 16)
+
+        pixels = []
+        for _, _, _, alpha in image.getdata():
+            pixels.append((red, green, blue, alpha))
+
+        image.putdata(pixels)
+        return PILImageTk.PhotoImage(image)
+
+
     def load_icons(self, opened_window, on_click_callback=None):
-        images_folder = r'C:\Finans_programm\images\icons'
+        images_folder = self.get_image_path('icons')
         self.images = []
         self.photo_icons = []
         for filename in os.listdir(images_folder):
@@ -210,6 +292,76 @@ class FinanceView(Tk):
                             if 'subcategoryBlack' in filename:
                                 self.canvas.bind("<Button-1>", lambda event, path=image_path: self.window_add_subcategory())
 
+
+        self.show_total_balance()
+
+
+    def show_total_balance(self):
+        if not self.controller_root or getattr(self.controller_root, "user_id", None) is None:
+            return
+        if not hasattr(self, "container_frame") or not self.container_frame.winfo_exists():
+            return
+
+        if hasattr(self, "total_balance_frame") and self.total_balance_frame.winfo_exists():
+            self.total_balance_frame.destroy()
+
+        try:
+            balances = self.controller_root.get_total_balance_items()
+        except Exception:
+            balances = []
+
+        if not balances:
+            balances = [("-", "-")]
+
+        main_currency, main_amount = balances[0]
+        second_balances = balances[1:3]
+
+        self.total_balance_frame = Frame(self.container_frame, bg="#D3D3D3")
+        self.total_balance_frame.pack(side=RIGHT, padx=18, pady=3)
+
+        self.total_balance_label = Label(
+            self.total_balance_frame,
+            text=f"Баланс: {main_amount} {main_currency}",
+            bg="#D3D3D3",
+            fg="#1F1F1F",
+            font=("Arial", 12, "bold"),
+            anchor="e"
+        )
+        self.total_balance_label.pack(fill=X)
+
+        secondary_text = "   ".join([f"{amount} {currency}" for currency, amount in second_balances])
+        self.secondary_balance_label = Label(
+            self.total_balance_frame,
+            text=secondary_text,
+            bg="#D3D3D3",
+            fg="#444444",
+            font=("Arial", 10, "bold"),
+            anchor="e"
+        )
+        self.secondary_balance_label.pack(fill=X)
+
+
+    def update_total_balance_label(self):
+        if not hasattr(self, "total_balance_frame") or not self.total_balance_frame.winfo_exists():
+            self.show_total_balance()
+            return
+
+        try:
+            balances = self.controller_root.get_total_balance_items()
+        except Exception:
+            balances = []
+
+        if not balances:
+            self.total_balance_label.config(text="Баланс: -")
+            self.secondary_balance_label.config(text="")
+            return
+
+        main_currency, main_amount = balances[0]
+        second_balances = balances[1:3]
+        secondary_text = "   ".join([f"{amount} {currency}" for currency, amount in second_balances])
+
+        self.total_balance_label.config(text=f"Баланс: {main_amount} {main_currency}")
+        self.secondary_balance_label.config(text=secondary_text)
 
     def create_middle_window(self):
         self.new_window = tk.Toplevel(self)
@@ -395,15 +547,15 @@ class FinanceView(Tk):
         self.balance_card_entry = ttk.Entry(self.new_window, width=30, font=("Arial", 13))
         self.balance_card_entry.grid(row=6, column=0, padx=20, pady=10, sticky="w")
 
-        options = ['UAH', 'EUR', 'USD']
+        options = self.get_available_currency_options()
         self.selected_currency = tk.StringVar(value="Виберіть валюту")
-        self.dropdown = ttk.OptionMenu(self.new_window, self.selected_currency, *options)
+        self.dropdown = ttk.OptionMenu(self.new_window, self.selected_currency, "Виберіть валюту", *options)
         self.dropdown.grid(row=6, column=0, pady=10, padx=(237.3, 0), sticky="w")
 
         self.submit_button_open_file = tk.Button(self.new_window, text='Вибір картинку', command=self.open_file)
         self.submit_button_open_file.grid(row=7, column=0, pady=5, padx=20, sticky="w")
 
-        self.image_rgb = PILImageTk.PhotoImage(file=r'C:\Finans_programm\images\image_buttom\rgb20.png')
+        self.image_rgb = PILImageTk.PhotoImage(file=self.get_image_path('image_buttom', 'rgb20.png'))
         self.submit_buttom_color = ttk.Button(self.new_window, image=self.image_rgb, width=10, command=self.choose_color)
         self.submit_buttom_color.grid(row=7, column=0, pady=7, padx=120, sticky="w")
 
@@ -420,7 +572,7 @@ class FinanceView(Tk):
         selected_type = self.selected_type.get()
         balance = self.balance_card_entry.get().strip()
 
-        if not name_card or selected_type == "Виберіть тип картки" or not balance:
+        if not name_card or selected_type == "Виберіть тип картки" or not balance or self.selected_currency.get() == "Виберіть валюту":
             messagebox.showerror("Помилка", "Будь ласка, заповніть усі обов'язкові поля.")
             return
 
@@ -444,14 +596,9 @@ class FinanceView(Tk):
             filetypes=(("Усі файли", "*.*"), ("Текстові файли", "*.txt"), ("Зображення", "*.png;*.jpg;*.jpeg")))
         if file_path:
             selected_file = file_path
-            try:
-                os.mkdir('C://Finans_programm/images/background_card')
-            except FileExistsError:
-                pass
-
-            destination_folder = 'C://Finans_programm/images/background_card'
-            destination_path = os.path.join(destination_folder, os.path.basename(file_path))
-            shutil.move(file_path, destination_path)
+            destination_folder = self.get_image_path('background_card')
+            destination_path = self.get_unique_file_path(destination_folder, os.path.basename(file_path))
+            shutil.copy2(file_path, destination_path)
             print(f"Файл переміщений у: {destination_path}")
             self.selected_picture_or_color = destination_path
         else:
@@ -597,7 +744,17 @@ class FinanceView(Tk):
 
 
     def format_balance(self, balance):
-        return f"{balance:,.0f}".replace(",", ".")
+        return self.format_money(balance)
+
+
+    def format_money(self, value):
+        try:
+            value = float(value)
+        except (TypeError, ValueError):
+            value = 0
+
+        formatted = f"{value:,.2f}"
+        return formatted.replace(",", " ").replace(".", ",").replace(" ", ".")
 
 
     def format_date(self, date):
@@ -629,13 +786,23 @@ class FinanceView(Tk):
     def apply_row_colors(self, tree):
         for index, item in enumerate(tree.get_children()):
             tag = "evenrow" if index % 2 == 0 else "oddrow"
-            tree.item(item, tags=(tag,))
             values = tree.item(item, "values")
-            transaction_type = values[3]  
-            if transaction_type == "Дохід":
-                tree.item(item, tags=(tag, "income"))
-            elif transaction_type == "Витрата":
-                tree.item(item, tags=(tag, "expense"))
+            row_tags = [tag]
+
+            try:
+                amount = float(str(values[4]).replace(" ", "").replace(",", "."))
+                if amount > 0:
+                    row_tags.append("income")
+                elif amount < 0:
+                    row_tags.append("expense")
+            except (ValueError, IndexError):
+                transaction_type = values[3] if len(values) > 3 else ""
+                if transaction_type == "Дохід":
+                    row_tags.append("income")
+                elif transaction_type == "Витрата":
+                    row_tags.append("expense")
+
+            tree.item(item, tags=tuple(row_tags))
 
         tree.tag_configure("evenrow", background="#f0f0f0")
         tree.tag_configure("oddrow", background="#ffffff")
@@ -723,7 +890,7 @@ class FinanceView(Tk):
 
         for index, transaction in enumerate(transactions):
             background_tag = "evenrow" if index % 2 == 0 else "oddrow"
-            tree.insert("", "end", values=transaction[1:], tags=(background_tag), iid=transaction[0])  
+            tree.insert("", "end", values=transaction[1:], tags=(background_tag,), iid=transaction[0])  
 
 
         def on_tree_select(event):
@@ -837,17 +1004,40 @@ class FinanceView(Tk):
         self.sumstransaction_entry.insert(0,result[5])
         self.sumstransaction_entry.grid(row=10, column=0, padx=20, pady=5, sticky="w")
 
-        self.currency_label = ttk.Label(self.new_window, text="", font=("Arial", 13))
+        self.currency = result[6]
+        self.currency_label = ttk.Label(self.new_window, text=f" {self.currency}", font=("Arial", 13))
         self.currency_label.grid(row=10, column=0, pady=10, padx=(225, 0), sticky="w")
 
         def update_currency(*args):
             selected_card = self.selected_choisecard.get()
-
-            self.currency = self.controller_root.update_card_currency(selected_card)
-            if self.currency:
+            if selected_card == self.selected_before_card:
+                if self.currency != result[6]:
+                    try:
+                        amount = float(self.sumstransaction_entry.get().replace(",", "."))
+                        converted_amount = self.controller_root.convert_currency(amount, self.currency, result[6])
+                        self.sumstransaction_entry.delete(0, "end")
+                        self.sumstransaction_entry.insert(0, self.format_currency_rate(abs(converted_amount)))
+                    except ValueError:
+                        pass
+                self.currency = result[6]
                 self.currency_label.config(text=f" {self.currency}")
-            else:
+                return
+
+            new_currency = self.controller_root.update_card_currency(selected_card)
+            if not new_currency:
                 self.currency_label.config(text="")
+                return
+
+            try:
+                amount = float(self.sumstransaction_entry.get().replace(",", "."))
+                converted_amount = self.controller_root.convert_currency(amount, self.currency, new_currency)
+                self.sumstransaction_entry.delete(0, "end")
+                self.sumstransaction_entry.insert(0, self.format_currency_rate(abs(converted_amount)))
+            except ValueError:
+                pass
+
+            self.currency = new_currency
+            self.currency_label.config(text=f" {self.currency}")
 
         self.label_choisecard = ttk.Label(self.new_window, width=30, text='Вибір картки', font=("Arial", 16))
         self.label_choisecard.grid(row=11, column=0, pady=0, padx=20, sticky="n")
@@ -858,7 +1048,6 @@ class FinanceView(Tk):
         self.choisecard_menu.grid(row=12, column=0, padx=20, pady=0, sticky="w")
     
         self.selected_choisecard.trace_add("write", update_currency)
-        update_currency()
 
         self.calendar = Calendar(self.new_window, selectmode='day', year=datetime.now().year, month=datetime.now().month, day=datetime.now().day)
         self.calendar.grid(row=2, column=1, rowspan=6, pady=0, padx=0, sticky="n")
@@ -950,7 +1139,7 @@ class FinanceView(Tk):
 
             if bg_picture:
                 try:
-                    image = PILImage.open(bg_picture)
+                    image = PILImage.open(self.resolve_image_path(bg_picture))
                     image = ImageOps.fit(image, (380, 210), method=PILImage.Resampling.LANCZOS, centering=(0.5, 0.5))
                     text_color = self.get_inverse_color(image)
                     background_image = PILImageTk.PhotoImage(image)
@@ -1086,13 +1275,19 @@ class FinanceView(Tk):
 
         card_name_currency = self.controller_root.update_card_name_currency()
 
-        add_tr_icon = PILImageTk.PhotoImage(file="images/icons_for_personal_card/xplus.png")  
-        edit_delete_icon = PILImageTk.PhotoImage(file="images/icons_for_personal_card/settings.png")  
+        add_tr_icon = self.get_colored_icon(self.get_image_path('icons_for_personal_card', 'xplus.png'), "#2E7D32")  
+        edit_delete_icon = PILImageTk.PhotoImage(file=self.get_image_path('icons_for_personal_card', 'settings.png'))  
 
         self.edit_delete_button = tk.Button(
             self.container_frame,
             image=edit_delete_icon,
-            command=lambda: self.controller_root.show_card_by_name(card_name_currency[0][0])
+            command=lambda: self.controller_root.show_card_by_name(card_name_currency[0][0]),
+            bg="#E6E6E6",
+            activebackground="#D3D3D3",
+            relief="flat",
+            bd=0,
+            width=40,
+            height=40
         )
         self.edit_delete_button.image = edit_delete_icon  
         self.edit_delete_button.grid(column=0, row=0, pady=2, padx=5, sticky="w")
@@ -1100,7 +1295,14 @@ class FinanceView(Tk):
         self.add_tr_button = tk.Button(
             self.container_frame,
             image=add_tr_icon,
-            command=lambda: self.add_personal_transactoin(card_name_currency)
+            command=lambda: self.add_personal_transactoin(card_name_currency),
+            bg="#D3D3D3",
+            activebackground="#C7C7C7",
+            relief="flat",
+            bd=0,
+            width=40,
+            height=40,
+            cursor="hand2"
         )
         self.add_tr_button.image = add_tr_icon  
         self.add_tr_button.grid(column=1, row=0, pady=2, padx=5, sticky="w")
@@ -1189,7 +1391,7 @@ class FinanceView(Tk):
         entry_bg_color = bg_color
 
         if bg_picture:
-            image = PILImage.open(bg_picture)
+            image = PILImage.open(self.resolve_image_path(bg_picture))
             if image.mode != "RGB":
                 image = image.convert("RGB")
 
@@ -1265,11 +1467,11 @@ class FinanceView(Tk):
                     except:
                         pass  
 
-        entry_name = PILImage(card_frame, **entry_style)
+        entry_name = tk.Entry(card_frame, **entry_style)
         entry_name.insert(0, card_name)
         entry_name.place(x=25, y=35, width=200)
 
-        entry_date = PILImage(card_frame, **entry_style)
+        entry_date = tk.Entry(card_frame, **entry_style)
         formatted_date = data_made if isinstance(data_made, str) else data_made.strftime("%d-%m-%Y")
         entry_date.insert(0, formatted_date)
         entry_date.place(x=25, y=75, width=120)
@@ -1279,11 +1481,35 @@ class FinanceView(Tk):
         entry_money.insert(0, str(count_money))
         entry_money.place(x=330, y=210, width=100, anchor="e")
 
-        currency_var = StringVar(value=type_currency)
-        currency_menu = OptionMenu(card_frame, currency_var, "UAH", "EUR", "USD")
+        available_currencies = self.get_available_currency_options()
+        selected_card_currency = type_currency if type_currency in available_currencies else available_currencies[0]
+        currency_var = StringVar(value=selected_card_currency)
+        currency_menu = OptionMenu(card_frame, currency_var, *available_currencies)
         currency_menu.config(font=("Arial", 10), bg=entry_bg_color, fg=text_color, highlightthickness=0)
         currency_menu["menu"].config(font=("Arial", 10))
         currency_menu.place(x=340, y=210, width=60, anchor="w")
+
+        current_currency = [selected_card_currency]
+
+        def change_card_currency(*args):
+            old_currency = current_currency[0]
+            new_currency = currency_var.get().strip()
+            if not old_currency or not new_currency or old_currency == new_currency:
+                current_currency[0] = new_currency
+                return
+
+            try:
+                amount = float(entry_money.get().replace(",", "."))
+            except ValueError:
+                current_currency[0] = new_currency
+                return
+
+            converted_amount = self.controller_root.convert_currency(amount, old_currency, new_currency)
+            entry_money.delete(0, "end")
+            entry_money.insert(0, self.format_currency_rate(converted_amount))
+            current_currency[0] = new_currency
+
+        currency_var.trace("w", change_card_currency)
 
         type_var = StringVar(value=type_pocket)
         type_menu = OptionMenu(card_frame,type_var, "Debit", "Kredit")
@@ -1340,7 +1566,7 @@ class FinanceView(Tk):
 
         for index, transaction in enumerate(tr_card):
             background_tag = "evenrow" if index % 2 == 0 else "oddrow"
-            self.tree.insert("", "end", values=transaction[1:], tags=(background_tag), iid=transaction[0])
+            self.tree.insert("", "end", values=transaction[1:], tags=(background_tag,), iid=transaction[0])
 
 
     def window_dollar_on_plus_click(self):
@@ -1366,23 +1592,34 @@ class FinanceView(Tk):
 
 
     def get_check_valid_currency(self, entry_iso_currency):
-        currency_value = self.controller_root.get_select_actualy_amount()
-        base_currency = currency_value[1] 
+        entry_iso_currency = entry_iso_currency.strip().upper()
+        if not entry_iso_currency:
+            messagebox.showerror("Помилка", "Введіть ISO валюти")
+            return
+
+        base_currency = self.controller_root.get_main_currency().strip().upper()
+
+        if entry_iso_currency == base_currency:
+            messagebox.showerror("Помилка", "Ця валюта вже є основною")
+            return
+
+        currencies = self.controller_root.get_currency_parsing_left_panel()
+        if entry_iso_currency in currencies:
+            messagebox.showerror("Помилка", "Така валюта вже є у списку")
+            return
 
         result = self.controller_root.tool_currency_parsing(entry_iso_currency, base_currency)
-
         if result is None:
-            messagebox.showerror(
-                'Помилка',
-                f"Такого типу валюти не знайдено!: {entry_iso_currency}"
-            )
+            messagebox.showerror("Помилка", f"Такого типу валюти не знайдено!: {entry_iso_currency}")
             return
 
         added_currency, rate = result
-        self.controller_root.submit_currency_parsing_left_panel(added_currency,rate)
+        self.controller_root.submit_currency_parsing_left_panel(added_currency, rate)
 
-        self.clear_widgets()
-        self.refresh_dollar()
+        if hasattr(self, 'new_window') and self.new_window.winfo_exists():
+            self.new_window.destroy()
+
+        self.update_dollar_view_after_add()
 
 
     def window_dollars(self):
@@ -1390,213 +1627,605 @@ class FinanceView(Tk):
         self.container_frame = Frame(self, height=50, bg="#D3D3D3")
         self.container_frame.pack(fill="x")
 
-        currency_value = self.controller_root.get_select_actualy_amount()
-        if not currency_value:
-            messagebox.showerror("Помилка", "Не вдалося отримати основну валюту")
+        if not self.load_dollar_data(show_warning=True):
             return
 
-        self.base_currency = currency_value[1]
+        self.dollar_main_frame = Frame(self, bg="#E0E0E0")
+        self.dollar_main_frame.pack(fill=BOTH, expand=True)
 
-        updated = self.controller_root.ensure_currencies_loaded()
+        self.left_panel = Frame(self.dollar_main_frame, width=320, bg="#B1B1B1")
+        self.left_panel.pack(side=LEFT, fill=Y)
+        self.left_panel.pack_propagate(False)
 
-        if not updated:
+        self.right_panel = Frame(self.dollar_main_frame, bg="#E0E0E0")
+        self.right_panel.pack(side=LEFT, fill=BOTH, expand=True)
+
+        self.render_dollar_window()
+
+
+    def get_currency_name(self, currency):
+        currency = str(currency).strip().upper()
+        names = {
+            "USD": "Долар США",
+            "EUR": "Євро",
+            "UAH": "Гривня",
+            "GBP": "Фунт стерлінгів",
+            "PLN": "Польський злотий",
+            "CAD": "Канадський долар",
+            "AUD": "Австралійський долар",
+            "CHF": "Швейцарський франк",
+            "JPY": "Японська єна",
+            "CNY": "Китайський юань",
+            "CZK": "Чеська крона",
+            "SEK": "Шведська крона",
+            "NOK": "Норвезька крона",
+            "DKK": "Данська крона"
+        }
+
+        if currency in names:
+            return names[currency]
+
+        if babel_get_currency_name:
+            try:
+                currency_name = babel_get_currency_name(currency, locale="uk")
+                if currency_name and currency_name.upper() != currency:
+                    return currency_name.capitalize()
+            except Exception:
+                pass
+
+        return currency
+
+
+    def format_currency_rate(self, rate):
+        if rate is None:
+            return "-"
+        if rate == 0:
+            return "0"
+        if abs(rate) >= 1:
+            formatted = f"{rate:.4f}"
+        else:
+            formatted = f"{rate:.6f}"
+        return formatted.rstrip("0").rstrip(".")
+
+
+    def load_dollar_data(self, show_warning=False, refresh_rates=False):
+        self.base_currency = self.controller_root.get_main_currency()
+        if not self.base_currency:
+            self.controller_root.set_main_currency("USD")
+            self.base_currency = self.controller_root.get_main_currency()
+            if not self.base_currency:
+                messagebox.showerror("Помилка", "Не вдалося отримати основну валюту")
+                return False
+        self.base_currency = self.base_currency.strip().upper()
+
+        if refresh_rates:
+            updated = self.controller_root.refresh_all_currencies(self.base_currency)
+        else:
+            updated = self.controller_root.ensure_currencies_loaded()
+
+        if show_warning and not updated:
             messagebox.showwarning(
                 "Немає інтернету",
-                "Курси валют не оновлено.\n"
-                "Використовуються збережені значення."
+                "Курси валют не оновлено.\nВикористовуються збережені значення."
             )
 
         currencies = self.controller_root.get_currency_parsing_left_panel()
-        main_frame = Frame(self, bg="#E0E0E0")
-        main_frame.pack(fill=BOTH, expand=True)
-
-        self.left_panel = Frame(main_frame, width=300, bg="#B1B1B1")
-        self.left_panel.pack(side=LEFT, fill="y")
+        self.dollar_currencies = {}
 
         for currency, rate in currencies.items():
-            if currency == self.base_currency:
+            try:
+                self.dollar_currencies[currency.strip().upper()] = float(rate)
+            except (TypeError, ValueError):
+                pass
+
+        self.dollar_currencies[self.base_currency] = 1.0
+        self.saved_secondary_currencies = self.controller_root.get_secondary_currencies()
+        if len(self.saved_secondary_currencies) < 2:
+            available_currencies = self.controller_root.get_available_currencies()
+            self.saved_secondary_currencies = [
+                currency for currency in available_currencies
+                if currency != self.base_currency
+            ][:2]
+
+        for currency in self.saved_secondary_currencies:
+            currency = str(currency).strip().upper()
+            if not currency or currency == self.base_currency or currency in self.dollar_currencies:
+                continue
+            result = self.controller_root.tool_currency_parsing(currency, self.base_currency)
+            if result:
+                added_currency, rate = result
+                self.controller_root.submit_currency_parsing_left_panel(added_currency, rate)
+                self.dollar_currencies[added_currency] = float(rate)
+            else:
+                self.dollar_currencies[currency] = None
+
+        self.dollar_currency_codes = sorted(self.dollar_currencies.keys())
+        self.prepare_currency_roles()
+        return True
+
+
+    def prepare_currency_roles(self, fill_empty=True):
+        available = [currency for currency in self.dollar_currency_codes if currency != self.base_currency]
+        saved_secondary = getattr(self, 'saved_secondary_currencies', [])
+        second_a = saved_secondary[0] if len(saved_secondary) > 0 else getattr(self, 'second_currency_a', None)
+        second_b = saved_secondary[1] if len(saved_secondary) > 1 else getattr(self, 'second_currency_b', None)
+        chart_target = getattr(self, 'chart_target_currency', None)
+
+        if second_a == self.base_currency or second_a not in available:
+            second_a = None
+        if second_b == self.base_currency or second_b not in available:
+            second_b = None
+        if second_a and second_a == second_b:
+            second_b = None
+
+        if fill_empty and not second_a and available:
+            second_a = available[0]
+        if fill_empty and not second_b:
+            for currency in available:
+                if currency != second_a:
+                    second_b = currency
+                    break
+
+        self.second_currency_a = second_a
+        self.second_currency_b = second_b
+        self.saved_secondary_currencies = [currency for currency in (second_a, second_b) if currency]
+
+        if self.second_currency_a and self.second_currency_b:
+            try:
+                self.controller_root.set_secondary_currencies(self.second_currency_a, self.second_currency_b)
+            except Exception:
+                pass
+
+        if not chart_target or chart_target not in (self.second_currency_a, self.second_currency_b):
+            self.chart_target_currency = self.second_currency_a or self.second_currency_b
+        else:
+            self.chart_target_currency = chart_target
+
+
+    def get_currency_rate(self, currency):
+        if not currency:
+            return None
+        currency = currency.strip().upper()
+        if currency == self.base_currency:
+            return 1.0
+        return self.dollar_currencies.get(currency)
+
+
+    def render_dollar_window(self):
+        for widget in self.left_panel.winfo_children():
+            widget.destroy()
+        for widget in self.right_panel.winfo_children():
+            widget.destroy()
+
+        self.build_currency_sidebar()
+        self.build_currency_workspace()
+
+
+    def bind_bg_hover(self, widget, normal_bg, hover_bg):
+        widget.bind("<Enter>", lambda event: widget.configure(bg=hover_bg))
+        widget.bind("<Leave>", lambda event: widget.configure(bg=normal_bg))
+
+
+    def build_currency_sidebar(self):
+        sidebar_bg = "#B1B1B1"
+        sidebar_fg = "#1F1F1F"
+        muted_fg = "#555555"
+
+        header = Frame(self.left_panel, bg=sidebar_bg)
+        header.pack(fill=X, padx=18, pady=(18, 12))
+
+        Label(header, text="Валюти", bg=sidebar_bg, fg=sidebar_fg, font=("Arial", 18, "bold"), anchor="w").pack(fill=X)
+        Label(header, text="Виберіть роль: 1, 2A або 2B", bg=sidebar_bg, fg=muted_fg, font=("Arial", 10), anchor="w").pack(fill=X, pady=(3, 0))
+
+        action_frame = Frame(self.left_panel, bg=sidebar_bg)
+        action_frame.pack(fill=X, padx=18, pady=(0, 12))
+
+        add_button = Button(
+            action_frame,
+            text="+ Додати",
+            bg="#90EE90",
+            fg="#1F1F1F",
+            activebackground="#79D879",
+            activeforeground="#1F1F1F",
+            relief="flat",
+            font=("Arial", 10, "bold"),
+            command=self.window_dollar_on_plus_click
+        )
+        add_button.pack(side=LEFT, fill=X, expand=True)
+
+        refresh_button = Button(
+            action_frame,
+            text="Оновити",
+            bg="#E6E6E6",
+            fg="#1F1F1F",
+            activebackground="#D3D3D3",
+            activeforeground="#1F1F1F",
+            relief="flat",
+            font=("Arial", 10),
+            command=self.refresh_currency_block
+        )
+        refresh_button.pack(side=LEFT, padx=(8, 0))
+
+        list_frame = Frame(self.left_panel, bg=sidebar_bg)
+        list_frame.pack(fill=BOTH, expand=True, padx=12, pady=(0, 14))
+
+        for currency in self.dollar_currency_codes:
+            self.build_currency_row(list_frame, currency)
+
+
+    def build_currency_row(self, parent, currency):
+        is_base = currency == self.base_currency
+        is_second_a = currency == self.second_currency_a
+        is_second_b = currency == self.second_currency_b
+        active = is_base or is_second_a or is_second_b
+        row_bg = "#E7E7E7" if active else "#D3D3D3"
+        hover_bg = "#C7C7C7"
+
+        row = Frame(parent, bg=row_bg, bd=0, highlightthickness=1, highlightbackground="#A0A0A0")
+        row.pack(fill=X, pady=6)
+
+        if not active:
+            self.bind_bg_hover(row, row_bg, hover_bg)
+
+        info = Frame(row, bg=row_bg)
+        info.pack(side=LEFT, fill=X, expand=True, padx=12, pady=10)
+
+        Label(info, text=currency, bg=row_bg, fg="#1F1F1F", font=("Arial", 14, "bold"), anchor="w").pack(fill=X)
+        Label(info, text=self.get_currency_name(currency), bg=row_bg, fg="#555555", font=("Arial", 9), anchor="w").pack(fill=X)
+
+        role_frame = Frame(row, bg=row_bg)
+        role_frame.pack(side=RIGHT, padx=10)
+
+        roles = (("1", is_base), ("2A", is_second_a), ("2B", is_second_b))
+        for role, selected in roles:
+            disabled = role != "1" and is_base
+            button = Button(
+                role_frame,
+                text=role,
+                width=3,
+                bg="#90EE90" if selected else "#EFEFEF",
+                fg="#1F1F1F",
+                activebackground="#79D879" if selected else "#D9D9D9",
+                activeforeground="#1F1F1F",
+                relief="flat",
+                font=("Arial", 9, "bold"),
+                state="disabled" if disabled else "normal",
+                command=lambda code=currency, current_role=role: self.select_currency_role(code, current_role)
+            )
+            button.pack(side=LEFT, padx=2)
+
+
+    def build_currency_workspace(self):
+        top = Frame(self.right_panel, bg="#E0E0E0")
+        top.pack(fill=X, padx=18, pady=(12, 8))
+
+        title_frame = Frame(top, bg="#E0E0E0")
+        title_frame.pack(side=LEFT, fill=X, expand=True)
+
+        Label(title_frame, text="Основна валюта", bg="#E0E0E0", fg="#555555", font=("Arial", 10), anchor="w").pack(fill=X)
+        Label(
+            title_frame,
+            text=f"{self.base_currency} - {self.get_currency_name(self.base_currency)}",
+            bg="#E0E0E0",
+            fg="#1F1F1F",
+            font=("Arial", 21, "bold"),
+            anchor="w"
+        ).pack(fill=X)
+        Label(title_frame, text=self.get_pairs_text(), bg="#E0E0E0", fg="#555555", font=("Arial", 11), anchor="w").pack(fill=X, pady=(3, 0))
+
+        chart_card = Frame(self.right_panel, bg="white", highlightthickness=1, highlightbackground="#E5E7EB")
+        chart_card.pack(fill=BOTH, expand=True, padx=18, pady=(0, 10))
+
+        self.build_chart_header(chart_card)
+
+        self.chart_frame = Frame(chart_card, bg="white", height=260)
+        self.chart_frame.pack(fill=BOTH, expand=True, padx=12, pady=(0, 12))
+
+        if self.chart_target_currency:
+            self.draw_currency_chart(self.chart_target_currency, self.chart_days_var.get(), "#555555")
+        else:
+            Label(self.chart_frame, text="Додайте вторинну валюту для графіку", bg="white", fg="#555555", font=("Arial", 13, "bold")).place(relx=0.5, rely=0.5, anchor="center")
+
+        bottom = Frame(self.right_panel, bg="#E0E0E0")
+        bottom.pack(fill=X, padx=18, pady=(0, 12))
+
+        self.build_rate_cards(bottom)
+        self.build_converter(bottom)
+
+
+    def build_chart_header(self, parent):
+        header = Frame(parent, bg="white")
+        header.pack(fill=X, padx=14, pady=12)
+
+        Label(header, text="Графік курсу", bg="white", fg="#1F1F1F", font=("Arial", 14, "bold")).pack(side=LEFT)
+
+        target_frame = Frame(header, bg="white")
+        target_frame.pack(side=RIGHT)
+
+        if self.second_currency_a:
+            self.build_chart_target_button(target_frame, "2A", self.second_currency_a)
+        if self.second_currency_b:
+            self.build_chart_target_button(target_frame, "2B", self.second_currency_b)
+
+        days_value = getattr(self, 'chart_days_value', 30)
+        self.chart_days_var = tk.IntVar(value=days_value)
+        days_box = ttk.Combobox(target_frame, values=[7, 14, 30, 90, 180, 365], textvariable=self.chart_days_var, state="readonly", width=5)
+        days_box.pack(side=LEFT, padx=(8, 0))
+        days_box.bind("<<ComboboxSelected>>", lambda event: self.change_chart_days())
+
+
+    def build_chart_target_button(self, parent, role, currency):
+        selected = currency == self.chart_target_currency
+        button = Button(
+            parent,
+            text=f"{role} {currency}",
+            bg="#B1B1B1" if selected else "#E6E6E6",
+            fg="#1F1F1F",
+            activebackground="#A0A0A0" if selected else "#D3D3D3",
+            activeforeground="#1F1F1F",
+            relief="flat",
+            font=("Arial", 9, "bold"),
+            command=lambda code=currency: self.change_chart_target(code)
+        )
+        button.pack(side=LEFT, padx=3)
+
+
+    def build_rate_cards(self, parent):
+        cards = Frame(parent, bg="#E0E0E0")
+        cards.pack(fill=X)
+        cards.columnconfigure(0, weight=1)
+        cards.columnconfigure(1, weight=1)
+
+        pair_list = [("2A", self.second_currency_a), ("2B", self.second_currency_b)]
+        column = 0
+        for role, currency in pair_list:
+            if not currency:
                 continue
 
-            row = Frame(self.left_panel, bg="#B1B1B1")
-            row.pack(fill=X, padx=6, pady=6)
+            rate = self.get_currency_rate(currency)
+            card = Frame(cards, bg="white", highlightthickness=1, highlightbackground="#E5E7EB")
+            card.grid(row=0, column=column, sticky="ew", padx=(0, 8 if column == 0 else 0), pady=(0, 8))
 
-            Label(
-                row,
-                text=f"{currency} {rate}",
-                bg="#B1B1B1",
-                font=("Arial", 14, "bold"),
-                anchor="w"
-            ).pack(side=LEFT, fill=X, expand=True)
+            Label(card, text=f"{role}: {self.base_currency} -> {currency}", bg="white", fg="#1F1F1F", font=("Arial", 11, "bold"), anchor="w").pack(fill=X, padx=10, pady=(8, 1))
+            Label(card, text=f"1 {self.base_currency} = {self.format_currency_rate(rate)} {currency}", bg="white", fg="#333333", font=("Arial", 10), anchor="w").pack(fill=X, padx=10)
 
-            Button(
-                row,
-                text="+",
-                width=3,
-                command=lambda key=currency: self.change_main_currency(key)
-            ).pack(side=RIGHT)
+            reverse_rate = None if not rate else 1 / rate
+            Label(card, text=f"1 {currency} = {self.format_currency_rate(reverse_rate)} {self.base_currency}", bg="white", fg="#555555", font=("Arial", 9), anchor="w").pack(fill=X, padx=10, pady=(1, 6))
 
-            Frame(self.left_panel, bg="black", height=2).pack(fill=X)
+            Button(card, text="Поміняти", bg="#E6E6E6", fg="#1F1F1F", relief="flat", command=lambda code=currency: self.swap_base_with_secondary(code)).pack(anchor="w", padx=10, pady=(0, 8))
+            column += 1
 
-        self.right_panel = Frame(main_frame, bg="#E0E0E0")
-        self.right_panel.pack(side=LEFT, fill=BOTH, expand=True)
 
-        self.active_currency_frame = Frame(self.right_panel, bg="#E0E0E0")
-        self.active_currency_frame.pack(fill=X, padx=20, pady=10)
+    def build_converter(self, parent):
+        converter = Frame(parent, width=300, bg="white", highlightthickness=1, highlightbackground="#E5E7EB")
+        converter.pack(fill=X, pady=(2, 0))
 
-        self.draw_active_currency(self.base_currency)
+        Label(converter, text="Конвертер", bg="white", fg="#1F1F1F", font=("Arial", 12, "bold"), anchor="w").pack(fill=X, padx=10, pady=(8, 5))
 
-        # ===== Панель управления графиком =====
-        control_frame = Frame(self.right_panel, bg="#E0E0E0")
-        control_frame.pack(fill=X, padx=20, pady=(5, 0))
+        values = [self.base_currency]
+        for currency in (self.second_currency_a, self.second_currency_b):
+            if currency and currency not in values:
+                values.append(currency)
 
-        Label(control_frame, text="Валюта:", bg="#E0E0E0").pack(side=LEFT)
+        amount_value = getattr(self, 'converter_amount_value', '1')
+        from_value = getattr(self, 'converter_from_value', self.base_currency)
+        to_value = getattr(self, 'converter_to_value', self.second_currency_a or self.base_currency)
 
-        available_currencies = [
-            c for c in currencies.keys()
-            if c != self.base_currency
-        ]
+        if from_value not in values:
+            from_value = self.base_currency
+        if to_value not in values:
+            to_value = values[-1]
 
-        # если нет валют — просто не рисуем график
-        if not available_currencies:
-            Label(
-                self.right_panel,
-                text="Додайте іншу валюту для графіку",
-                bg="#E0E0E0",
-                fg="gray",
-                font=("Arial", 12)
-            ).pack(pady=20)
+        self.converter_amount_var = tk.StringVar(value=amount_value)
+        self.converter_from_var = tk.StringVar(value=from_value)
+        self.converter_to_var = tk.StringVar(value=to_value)
+
+        tk.Entry(converter, textvariable=self.converter_amount_var, font=("Arial", 11)).pack(fill=X, padx=10, pady=(0, 6))
+
+        currency_row = Frame(converter, bg="white")
+        currency_row.pack(fill=X, padx=10)
+
+        ttk.Combobox(currency_row, values=values, textvariable=self.converter_from_var, state="readonly", width=7).pack(side=LEFT, fill=X, expand=True)
+        Button(currency_row, text="<->", bg="#E6E6E6", relief="flat", command=self.swap_converter_currencies).pack(side=LEFT, padx=6)
+        ttk.Combobox(currency_row, values=values, textvariable=self.converter_to_var, state="readonly", width=7).pack(side=LEFT, fill=X, expand=True)
+
+        self.converter_result_label = Label(converter, text="", bg="white", fg="#1F1F1F", font=("Arial", 15, "bold"), anchor="w")
+        self.converter_result_label.pack(fill=X, padx=10, pady=(8, 2))
+
+        self.converter_pair_label = Label(converter, text="", bg="white", fg="#555555", font=("Arial", 10), anchor="w")
+        self.converter_pair_label.pack(fill=X, padx=10, pady=(0, 6))
+
+        self.converter_amount_var.trace("w", lambda *args: self.update_converter_result())
+        self.converter_from_var.trace("w", lambda *args: self.update_converter_result())
+        self.converter_to_var.trace("w", lambda *args: self.update_converter_result())
+        self.update_converter_result()
+
+
+    def select_currency_role(self, currency, role, fill_empty=True):
+        currency = currency.strip().upper()
+
+        if role == "1":
+            self.set_base_currency(currency)
             return
 
-        self.chart_currency_var = tk.StringVar(value=available_currencies[0])
+        if currency == self.base_currency:
+            messagebox.showwarning("Помилка", "Основна валюта не може бути вторинною")
+            return
 
-        currency_box = ttk.Combobox(
-            control_frame,
-            values=available_currencies,
-            textvariable=self.chart_currency_var,
-            state="readonly",
-            width=8
-        )
-        currency_box.pack(side=LEFT, padx=5)
+        old_second_a = self.second_currency_a
+        old_second_b = self.second_currency_b
 
-        Label(control_frame, text="Днів:", bg="#E0E0E0").pack(side=LEFT)
+        if role == "2A":
+            if old_second_b == currency:
+                self.second_currency_b = old_second_a
+            self.second_currency_a = currency
+            self.chart_target_currency = currency
+        elif role == "2B":
+            if old_second_a == currency:
+                self.second_currency_a = old_second_b
+            self.second_currency_b = currency
+            self.chart_target_currency = currency
 
-        self.chart_days_var = tk.IntVar(value=30)
-
-        days_box = ttk.Combobox(
-            control_frame,
-            values=[7, 14, 30, 90, 180, 365],
-            textvariable=self.chart_days_var,
-            state="readonly",
-            width=6
-        )
-        days_box.pack(side=LEFT, padx=5)
-
-        Label(control_frame, text="Колір:", bg="#E0E0E0").pack(side=LEFT)
-
-        self.chart_color_var = tk.StringVar(value="red")
-
-        color_box = ttk.Combobox(
-            control_frame,
-            values=["red", "blue", "green", "black", "orange"],
-            textvariable=self.chart_color_var,
-            state="readonly",
-            width=8
-        )
-        color_box.pack(side=LEFT, padx=5)
-
-        Button(
-            control_frame,
-            text="Показати",
-            command=lambda: self.draw_currency_chart(
-                self.chart_currency_var.get(),
-                self.chart_days_var.get(),
-                self.chart_color_var.get()
-            )
-        ).pack(side=LEFT, padx=10)
+        self.saved_secondary_currencies = [item for item in (self.second_currency_a, self.second_currency_b) if item]
+        self.prepare_currency_roles(fill_empty=fill_empty)
+        if self.second_currency_a and self.second_currency_b:
+            try:
+                self.controller_root.set_secondary_currencies(self.second_currency_a, self.second_currency_b)
+            except ValueError as error:
+                messagebox.showwarning("Помилка", str(error))
+                self.load_dollar_data(refresh_rates=False)
+            except Exception:
+                pass
+        self.update_total_balance_label()
+        self.render_dollar_window()
 
 
-        # ===== Frame для графика =====
-        self.chart_frame = Frame(self.right_panel, bg="#CFCFCF")
-        self.chart_frame.pack(fill=BOTH, expand=True, padx=20, pady=20)
+    def set_base_currency(self, currency):
+        currency = currency.strip().upper()
+        if currency == self.base_currency:
+            return
 
-        self.draw_currency_chart(
-            self.chart_currency_var.get(),
-            self.chart_days_var.get(),
-            self.chart_color_var.get()
-        )
+        old_base = self.base_currency
+        selected_rate = self.get_currency_rate(currency)
+        old_role = None
+
+        if self.second_currency_a == currency:
+            old_role = "2A"
+        elif self.second_currency_b == currency:
+            old_role = "2B"
+
+        self.controller_root.change_base_currency_and_recalculate(currency)
+
+        if selected_rate:
+            self.controller_root.submit_currency_parsing_left_panel(old_base, 1 / selected_rate)
+
+        self.load_dollar_data(refresh_rates=False)
+
+        if old_role == "2A":
+            self.second_currency_a = old_base
+        elif old_role == "2B":
+            self.second_currency_b = old_base
+
+        self.saved_secondary_currencies = [item for item in (self.second_currency_a, self.second_currency_b) if item]
+        self.prepare_currency_roles(fill_empty=True)
+        if self.second_currency_a and self.second_currency_b:
+            try:
+                self.controller_root.set_secondary_currencies(self.second_currency_a, self.second_currency_b)
+            except ValueError as error:
+                messagebox.showwarning("Помилка", str(error))
+            except Exception:
+                pass
+        self.chart_target_currency = self.second_currency_a or self.second_currency_b
+        self.update_total_balance_label()
+        self.render_dollar_window()
 
 
-        for currency in currencies:
-            if currency != self.base_currency:
-                self.draw_currency_chart(currency)
-                break
+    def swap_base_with_secondary(self, currency):
+        self.set_base_currency(currency)
 
+
+    def refresh_currency_block(self):
+        if self.load_dollar_data(refresh_rates=True):
+            self.update_total_balance_label()
+            self.render_dollar_window()
+        else:
+            messagebox.showwarning("Помилка", "Не вдалося оновити курси валют")
+
+
+    def update_dollar_view_after_add(self):
+        if hasattr(self, 'left_panel') and self.left_panel.winfo_exists():
+            self.load_dollar_data(refresh_rates=False)
+            self.prepare_currency_roles(fill_empty=True)
+            self.render_dollar_window()
+        else:
+            self.refresh_dollar()
+
+
+    def change_chart_target(self, currency):
+        self.chart_target_currency = currency
+        self.render_dollar_window()
+
+
+    def change_chart_days(self):
+        self.chart_days_value = self.chart_days_var.get()
+        if self.chart_target_currency:
+            self.draw_currency_chart(self.chart_target_currency, self.chart_days_value, "#555555")
+
+
+    def get_pairs_text(self):
+        pairs = []
+        for currency in (self.second_currency_a, self.second_currency_b):
+            if currency:
+                pairs.append(f"{self.base_currency} -> {currency}")
+        return "Пари: " + ", ".join(pairs) if pairs else "Немає вторинних валют"
+
+
+    def swap_converter_currencies(self):
+        from_value = self.converter_from_var.get()
+        to_value = self.converter_to_var.get()
+        self.converter_from_var.set(to_value)
+        self.converter_to_var.set(from_value)
+        self.update_converter_result()
+
+
+    def update_converter_result(self):
+        if not hasattr(self, 'converter_result_label'):
+            return
+
+        amount_text = self.converter_amount_var.get().replace(",", ".").strip()
+        self.converter_amount_value = self.converter_amount_var.get()
+        self.converter_from_value = self.converter_from_var.get()
+        self.converter_to_value = self.converter_to_var.get()
+
+        try:
+            amount = float(amount_text)
+        except ValueError:
+            self.converter_result_label.config(text="Введіть число")
+            self.converter_pair_label.config(text="")
+            return
+
+        from_currency = self.converter_from_value
+        to_currency = self.converter_to_value
+        result = self.controller_root.convert_currency(amount, from_currency, to_currency)
+        self.converter_result_label.config(text=f"{self.format_money(result)} {to_currency}")
+        self.converter_pair_label.config(text=f"{from_currency} -> {to_currency}")
 
 
     def change_main_currency(self, new_currency):
-        self.controller_root.change_base_currency_and_recalculate(new_currency)
-        self.refresh_dollar()
+        self.set_base_currency(new_currency)
 
 
+    def draw_currency_chart(self, target_currency, days=30, color="#555555"):
+        if not hasattr(self, 'chart_frame'):
+            return
 
-    def draw_active_currency(self, currency):
-        Label(
-            self.active_currency_frame,
-            text=currency,
-            bg="#E0E0E0",
-            font=("Arial", 26, "bold"),
-            anchor="e"
-        ).pack(fill=X)
-
-        Frame(
-            self.active_currency_frame,
-            bg="black",
-            height=3
-        ).pack(fill=X, pady=(5, 0))
-
-        Label(
-            self.active_currency_frame,
-            text="Main currency",
-            bg="#E0E0E0",
-            fg="#555555",
-            font=("Arial", 10),
-            anchor="e"
-        ).pack(fill=X)
-
-
-    def draw_currency_chart(self, target_currency, days=30, color="red"):
         for widget in self.chart_frame.winfo_children():
             widget.destroy()
 
-        history = self.controller_root.fetch_currency_history(
-            self.base_currency,
-            target_currency,
-            days
-        )
+        if not target_currency:
+            return
+
+        history = self.controller_root.fetch_currency_history(self.base_currency, target_currency, days)
 
         if not history:
-            Label(
-                self.chart_frame,
-                text="Немає підключення до інтернету або даних",
-                font=("Arial", 14, "bold"),
-                fg="gray",
-                bg="#CFCFCF"
-            ).place(relx=0.5, rely=0.5, anchor="center")
+            Label(self.chart_frame, text="Немає підключення до інтернету або даних", font=("Arial", 13, "bold"), fg="#555555", bg="white").place(relx=0.5, rely=0.5, anchor="center")
             return
 
         dates = [datetime.strptime(d, "%Y-%m-%d") for d, _ in history]
         values = [v for _, v in history]
 
-        fig = Figure(figsize=(6, 4), dpi=100)
+        fig = Figure(figsize=(7, 3.2), dpi=100, facecolor="white")
         ax = fig.add_subplot(111)
+        fig.subplots_adjust(left=0.08, right=0.98, top=0.86, bottom=0.22)
 
-        ax.plot(dates, values, color=color, linewidth=2, label="Курс")
-        ax.scatter(dates, values, color=color, s=10)
+        ax.plot(dates, values, color=color, linewidth=2.4, label=f"{self.base_currency} -> {target_currency}")
+        ax.fill_between(dates, values, color=color, alpha=0.08)
+        ax.scatter(dates, values, color=color, s=14)
 
-        ax.set_title(f"{target_currency} / {self.base_currency}")
+        ax.set_title(f"{self.base_currency} -> {target_currency}", fontsize=12, fontweight="bold")
         ax.set_xlabel("Дата")
         ax.set_ylabel("Курс")
-        ax.grid(True, alpha=0.3)
+        ax.grid(True, alpha=0.22)
         ax.legend()
 
         if days <= 14:
@@ -1607,17 +2236,15 @@ class FinanceView(Tk):
             ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=1))
         elif days <= 180:
             ax.xaxis.set_major_locator(mdates.WeekdayLocator(interval=2))
-        else:  
+        else:
             ax.xaxis.set_major_locator(mdates.MonthLocator(interval=1))
 
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m.%Y'))
-        fig.autofmt_xdate(rotation=30)
+        fig.autofmt_xdate(rotation=25)
 
         canvas = FigureCanvasTkAgg(fig, master=self.chart_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(fill=BOTH, expand=True)
-
-
 
 
     def get_actual_currency(self,key,value):
@@ -1650,6 +2277,37 @@ class FinanceView(Tk):
             for widget in self.right_frame.winfo_children():
                 widget.destroy()
 
+        columns_transaction = ["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
+                            "Сума", "Тип валюти", "Карта", "Дата транзакції"]
+
+        def show_no_data(message="Немає даних для графіку"):
+            Label(
+                self.central_figure,
+                text=message,
+                bg="white",
+                fg="#555555",
+                font=("Arial", 14, "bold")
+            ).place(relx=0.5, rely=0.5, anchor="center")
+
+        def get_transaction_dataframe():
+            result_transaction = self.controller_root.update_transaction()
+            df = pd.DataFrame(result_transaction, columns=columns_transaction)
+            if df.empty:
+                return df
+
+            df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"], errors="coerce")
+            df["Сума"] = pd.to_numeric(df["Сума"], errors="coerce").fillna(0)
+            df = df.dropna(subset=["Дата транзакції"])
+
+            main_currency = self.controller_root.get_main_currency()
+            if main_currency:
+                df["Сума"] = df.apply(
+                    lambda row: self.controller_root.convert_currency(row["Сума"], row["Тип валюти"], main_currency),
+                    axis=1
+                )
+
+            return df
+
         def right_frame_widget():
             self.month_option_map = ["3 місяця", "6 місяців", "9 місяців", "12 місяців", "За весь час", "За поточний місяць", "За поточний рік", "За минулий рік"]
             option_month = self.month_option_map  
@@ -1671,7 +2329,6 @@ class FinanceView(Tk):
 
         def show_profit_loss_schedule():
             clear_central_figure()
-            result_transaction = self.controller_root.update_transaction()
             clear_right_frame()
             right_frame_widget()
 
@@ -1680,11 +2337,11 @@ class FinanceView(Tk):
                 selected_option = self.selected_choise_month_menu.get()
                 selected_card = self.selected_choisecard.get()
 
-                columns = ["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
-                        "Сума", "Тип валюти", "Карта", "Дата транзакції"]
+                df = get_transaction_dataframe()
+                if df.empty:
+                    show_no_data()
+                    return
 
-                df = pd.DataFrame(result_transaction, columns=columns)
-                df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
                 current_year = pd.Timestamp.now().year
                 current_mont = pd.Timestamp.now().month
 
@@ -1703,7 +2360,8 @@ class FinanceView(Tk):
                     grouping = "month"
 
                 elif selected_option == "За поточний місяць":
-                    df = df[df["Дата транзакції"].dt.month == current_mont]
+                    df = df[(df["Дата транзакції"].dt.month == current_mont) &
+                            (df["Дата транзакції"].dt.year == current_year)]
                     grouping = "month"
 
                 elif selected_option == "За минулий рік":
@@ -1729,6 +2387,10 @@ class FinanceView(Tk):
 
                 if selected_card not in ("Усі картки", "Вибір картки"):
                     df = df[df["Карта"] == selected_card]
+
+                if df.empty:
+                    show_no_data()
+                    return
 
                 if grouping == "year":
                     df["Рік"] = df["Дата транзакції"].dt.year
@@ -1798,10 +2460,12 @@ class FinanceView(Tk):
             month_menu.pack(anchor="ne", padx=10, pady=10)
 
             def draw_chart():
-                df = pd.DataFrame(self.controller_root.update_transaction(),
-                                columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
-                                        "Сума", "Тип валюти", "Карта", "Дата транзакції"])
-                df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
+                df = get_transaction_dataframe()
+                clear_central_figure()
+                if df.empty:
+                    show_no_data()
+                    return
+
                 df = df[df["Тип транзакції"] == "Витрата"]
                 df["Сума"] = df["Сума"].abs()
 
@@ -1836,8 +2500,10 @@ class FinanceView(Tk):
 
 
                 grouped = df.groupby("Категорія")["Сума"].sum()
+                if grouped.empty or grouped.sum() == 0:
+                    show_no_data("Немає витрат для графіку")
+                    return
 
-                clear_central_figure()
                 fig = Figure(figsize=(7, 6), dpi=100)
                 ax = fig.add_subplot(111)
                 ax.pie(grouped, labels=grouped.index, autopct='%1.1f%%')
@@ -1864,10 +2530,12 @@ class FinanceView(Tk):
             month_menu.pack(anchor="ne", padx=10, pady=10)
 
             def draw_chart():
-                df = pd.DataFrame(self.controller_root.update_transaction(),
-                                columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
-                                        "Сума", "Тип валюти", "Карта", "Дата транзакції"])
-                df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
+                df = get_transaction_dataframe()
+                clear_central_figure()
+                if df.empty:
+                    show_no_data()
+                    return
+
                 df = df[df["Тип транзакції"] == "Дохід"]
                 df["Джерело"] = df["Категорія"]
 
@@ -1903,8 +2571,10 @@ class FinanceView(Tk):
 
 
                 grouped = df.groupby("Джерело")["Сума"].sum()
+                if grouped.empty or grouped.sum() == 0:
+                    show_no_data("Немає доходів для графіку")
+                    return
 
-                clear_central_figure()
                 fig = Figure(figsize=(7, 6), dpi=100)
                 ax = fig.add_subplot(111)
                 ax.pie(grouped, labels=grouped.index, autopct='%1.1f%%')
@@ -1927,11 +2597,11 @@ class FinanceView(Tk):
 
             list_cards = self.controller_root.update_card_list()
 
-            df = pd.DataFrame(self.controller_root.update_transaction(),
-                            columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
-                                    "Сума", "Тип валюти", "Карта", "Дата транзакції"])
-            df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
-            df["Сума"] = df["Сума"].astype(float)
+            df = get_transaction_dataframe()
+            if df.empty:
+                show_no_data()
+                return
+
             df["Баланс"] = df.apply(lambda row: row["Сума"] if row["Тип транзакції"] == "Дохід" else -abs(row["Сума"]), axis=1)
             df.sort_values("Дата транзакції", inplace=True)
 
@@ -1966,7 +2636,8 @@ class FinanceView(Tk):
             ax.set_xlabel("Дата", fontsize=12)
             ax.set_ylabel("Сума", fontsize=12)
             ax.tick_params(axis='both', labelsize=10)
-            ax.legend(title="Картки", fontsize=9, title_fontsize=10)
+            if lines:
+                ax.legend(title="Картки", fontsize=9, title_fontsize=10)
             ax.grid(True, linestyle='--', alpha=0.5)
 
             fig.tight_layout()
@@ -1974,6 +2645,9 @@ class FinanceView(Tk):
             canvas = FigureCanvasTkAgg(fig, master=self.central_figure)
             canvas.draw()
             canvas.get_tk_widget().pack(fill="both", expand=True)
+
+            if not lines:
+                return
 
             cursor = mplcursors.cursor(lines, hover=True)
 
@@ -1995,11 +2669,11 @@ class FinanceView(Tk):
 
             total_start_balance = sum(pocket_balances.values())
 
-            df = pd.DataFrame(self.controller_root.update_transaction(),
-                            columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
-                                    "Сума", "Тип валюти", "Карта", "Дата транзакції"])
-            df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
-            df["Сума"] = df["Сума"].astype(float)
+            df = get_transaction_dataframe()
+            if df.empty:
+                show_no_data()
+                return
+
             df["Баланс"] = df.apply(lambda row: row["Сума"] if row["Тип транзакції"] == "Дохід" else -abs(row["Сума"]), axis=1)
             df.sort_values("Дата транзакції", inplace=True)
 
@@ -2038,17 +2712,13 @@ class FinanceView(Tk):
             clear_central_figure()
             clear_right_frame()
 
-            df = pd.DataFrame(self.controller_root.update_transaction(),
-                            columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
-                                    "Сума", "Тип валюти", "Карта", "Дата транзакції"])
-            df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
+            df = get_transaction_dataframe()
+            if df.empty:
+                show_no_data()
+                return
+
             df["День тижня"] = df["Дата транзакції"].dt.day_name()
-            df["Година"] = df["Дата транзакції"].dt.hour
-
-            pivot = df.pivot_table(index="Година", columns="День тижня", values="ID", aggfunc="count").fillna(0)
-
             ordered_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-            pivot = pivot.reindex(columns=ordered_days)
 
             day_name_map = {
                 "Monday": "Пн",
@@ -2059,6 +2729,28 @@ class FinanceView(Tk):
                 "Saturday": "Сб",
                 "Sunday": "Нд"
             }
+
+            has_time = (
+                (df["Дата транзакції"].dt.hour != 0) |
+                (df["Дата транзакції"].dt.minute != 0) |
+                (df["Дата транзакції"].dt.second != 0)
+            ).any()
+
+            if has_time:
+                df["Година"] = df["Дата транзакції"].dt.hour
+                pivot = df.pivot_table(index="Година", columns="День тижня", values="ID", aggfunc="count").fillna(0)
+                pivot = pivot.reindex(index=range(24), columns=ordered_days, fill_value=0).fillna(0)
+                y_labels = [f"{hour:02d}:00" for hour in pivot.index]
+                title = "Теплова карта по годинах і днях тижня"
+                y_title = "Година"
+            else:
+                df["Тиждень"] = df["Дата транзакції"].dt.strftime("%Y-%m тиж.%W")
+                pivot = df.pivot_table(index="Тиждень", columns="День тижня", values="ID", aggfunc="count").fillna(0)
+                pivot = pivot.reindex(columns=ordered_days, fill_value=0).fillna(0)
+                y_labels = list(pivot.index)
+                title = "Теплова карта по тижнях і днях тижня"
+                y_title = "Тиждень"
+
             pivot.columns = [day_name_map.get(col, col) for col in pivot.columns]
 
             fig = Figure(figsize=(10, 6), dpi=100)
@@ -2068,10 +2760,13 @@ class FinanceView(Tk):
             ax.set_xticks(range(len(pivot.columns)))
             ax.set_xticklabels(pivot.columns, rotation=45)
             ax.set_yticks(range(len(pivot.index)))
-            ax.set_yticklabels(pivot.index)
+            ax.set_yticklabels(y_labels)
 
-            ax.set_title("Теплова карта активності транзакцій")
+            ax.set_title(title)
+            ax.set_xlabel("День тижня")
+            ax.set_ylabel(y_title)
             fig.colorbar(cax, ax=ax, label="Кількість транзакцій")
+            fig.tight_layout()
 
             canvas = FigureCanvasTkAgg(fig, master=self.central_figure)
             canvas.draw()
@@ -2083,12 +2778,17 @@ class FinanceView(Tk):
             clear_right_frame()
 
 
-            df = pd.DataFrame(self.controller_root.update_transaction(),
-                            columns=["ID", "Контрагент", "Категорія", "Підкатегорія", "Тип транзакції",
-                                    "Сума", "Тип валюти", "Карта", "Дата транзакції"])
+            df = get_transaction_dataframe()
+            if df.empty:
+                show_no_data()
+                return
+
             df = df[df["Тип транзакції"] == "Витрата"]
             df["Сума"] = df["Сума"].abs()
-            df["Дата транзакції"] = pd.to_datetime(df["Дата транзакції"])
+            if df.empty:
+                show_no_data("Немає витрат для графіку")
+                return
+
             df["Місяць"] = df["Дата транзакції"].dt.to_period("M").astype(str)
 
             contractors = sorted(df["Контрагент"].dropna().unique())
@@ -2135,6 +2835,9 @@ class FinanceView(Tk):
 
                 filtered_df = df[(df["Контрагент"] == contractor) & (df["Категорія"] == category)]
                 grouped = filtered_df.groupby("Місяць")["Сума"].sum()
+                if grouped.empty:
+                    show_no_data("Немає витрат для вибраних даних")
+                    return
 
                 fig = Figure(figsize=(10, 5), dpi=100)
                 ax = fig.add_subplot(111)
@@ -2142,7 +2845,7 @@ class FinanceView(Tk):
 
                 ax.set_title(f"Витрати: {contractor} → {category}")
                 ax.set_xlabel("Місяць")
-                ax.set_ylabel("Сума витрат (грн)")
+                ax.set_ylabel("Сума витрат")
                 ax.grid(True)
 
                 canvas = FigureCanvasTkAgg(fig, master=self.central_figure)
@@ -2157,15 +2860,13 @@ class FinanceView(Tk):
             draw_chart()
 
 
-        "Выбор категории и показывает траты за время"
-
         Button(self.left_frame, text="Стовпчикова діаграма Доходи/Витрати", command=show_profit_loss_schedule, height=1, bg="#B1B1B1").pack(fill="x", pady=(10, 0))
         Button(self.left_frame, text="Круговий графік витрат", command=show_circular_spending_chart, height=1, bg="#B1B1B1").pack(fill="x")
         Button(self.left_frame, text="Круговий графік доходів", command=show_income_sources, height=1, bg="#B1B1B1").pack(fill="x")
         Button(self.left_frame, text="Баланс з часом по картам", command=show_balance_over_time, height=1, bg="#B1B1B1").pack(fill="x")
         Button(self.left_frame, text="Баланс з часом за рахунком ", command=show_balance_over_time_all_card, height=1, bg="#B1B1B1").pack(fill="x")
 
-        Button(self.left_frame, text="Теплова карта по днях тижня та годин", command=show_transaction_activity_heatmap, height=1, bg="#B1B1B1").pack(fill="x")
+        Button(self.left_frame, text="Теплова карта активності", command=show_transaction_activity_heatmap, height=1, bg="#B1B1B1").pack(fill="x")
         Button(self.left_frame, text="Витрати за категоріями", command=show_contractor_category_expense_timeline, height=1, bg="#B1B1B1").pack(fill="x")
 
 
@@ -2253,21 +2954,14 @@ class FinanceView(Tk):
         selected_item = selected_items[0]  
         item = tree.item(selected_item)  
         item_text = item["text"]  
+        if not item["values"]:
+            return
+
         item_id = item["values"][0]
-
-        for widget in self.white_column.winfo_children():
-            widget.destroy()
-
-        header_frame = tk.Frame(self.white_column, bg="white")
-        header_frame.pack(fill="x", padx=10, pady=5)
-
-        title_label = tk.Label(header_frame, text=f"Вибрано: {item_text}", font=("Arial", 14, "bold"), bg="white")
-        title_label.pack()
-
         item_type = "Невідомо"
         related_data = []
 
-        if item_id:
+        if item_id and item["tags"]:
             item_type = item['tags'][0]
 
             if item_type == "Контрагент":
@@ -2275,8 +2969,40 @@ class FinanceView(Tk):
             elif item_type == "Категорія":
                 related_data = self.controller_root.get_subcategories_by_category(item_id)
 
+        clean_item_text = item_text.replace("▼", "").replace("▶", "").strip()
+
+        for widget in self.white_column.winfo_children():
+            widget.destroy()
+
+        header_frame = tk.Frame(self.white_column, bg="white")
+        header_frame.pack(fill="x", padx=10, pady=5)
+
+        title_label = tk.Label(header_frame, text=f"Вибрано: {clean_item_text}", font=("Arial", 14, "bold"), bg="white")
+        title_label.pack()
+
         type_label = tk.Label(header_frame, text=f"Тип: {item_type}", font=("Arial", 12), bg="white")
         type_label.pack()
+
+        edit_icon = PILImageTk.PhotoImage(file=self.get_image_path('image_buttom', 'change.png'))  
+        delete_icon = PILImageTk.PhotoImage(file=self.get_image_path('image_buttom', 'dustbin.png'))  
+
+        counteragent_data = [item_id, clean_item_text]
+        
+
+        button_frame = tk.Frame(header_frame, bg="white")
+        button_frame.pack(side="right")
+        
+
+        edit_button_counteragent = tk.Button(button_frame, image=edit_icon, command=lambda data=counteragent_data: self.open_edit_window(data,item_type))
+        edit_button_counteragent.image = edit_icon  
+        edit_button_counteragent.grid(row=0, column=1, sticky="ne", padx=5, pady=5)  
+
+        delete_button_counteragent = tk.Button(button_frame, image=delete_icon, command=lambda data=counteragent_data: self.open_delete_window(data,item_type))
+        delete_button_counteragent.image = delete_icon  
+        delete_button_counteragent.grid(row=1, column=1, sticky="ne", padx=5, pady=5)
+
+        if item_type == "Підкатегорія":
+            return
 
         separator = tk.Frame(self.white_column, height=2, bg="gray")
         separator.pack(fill="x", padx=5, pady=5)
@@ -2296,26 +3022,6 @@ class FinanceView(Tk):
         bottom_frame.grid_columnconfigure(0, weight=1)
         bottom_frame.grid_columnconfigure(1, weight=1)
         bottom_frame.grid_columnconfigure(2, weight=1)
-
-        edit_icon = PILImageTk.PhotoImage(file="images/image_buttom/change.png")  
-        delete_icon = PILImageTk.PhotoImage(file="images/image_buttom/dustbin.png")  
-
-        counteragent_data = [item_id, item_text]
-        if "▼" in counteragent_data[1] or "▶" in counteragent_data[1]:
-            counteragent_data[1] = counteragent_data[1][0:-1]
-        
-
-        button_frame = tk.Frame(header_frame, bg="white")
-        button_frame.pack(side="right")
-        
-
-        edit_button_counteragent = tk.Button(button_frame, image=edit_icon, command=lambda data=counteragent_data: self.open_edit_window(data,item_type))
-        edit_button_counteragent.image = edit_icon  
-        edit_button_counteragent.grid(row=0, column=1, sticky="ne", padx=5, pady=5)  
-
-        delete_button_counteragent = tk.Button(button_frame, image=delete_icon, command=lambda data=counteragent_data: self.open_delete_window(data,item_type))
-        delete_button_counteragent.image = delete_icon  
-        delete_button_counteragent.grid(row=1, column=1, sticky="ne", padx=5, pady=5)
 
         row_index = 1
         if related_data:
@@ -2345,7 +3051,15 @@ class FinanceView(Tk):
 
                 row_index += 1 
         else:
-            tk.Label(col1, text="Немає даних", bg="white", font=("Arial", 12)).grid(row=0, column=0, sticky="w")
+            if item_type == "Контрагент":
+                empty_text = "Немає категорій"
+            elif item_type == "Категорія":
+                empty_text = "Немає підкатегорій"
+            else:
+                empty_text = ""
+
+            if empty_text:
+                tk.Label(col1, text=empty_text, bg="white", font=("Arial", 12)).grid(row=0, column=0, sticky="w")
 
 
     def open_edit_window(self, data, type_item):
@@ -2402,8 +3116,3 @@ class FinanceView(Tk):
         text = tree.item(item, "text")
         if old_symbol in text:
             tree.item(item, text=text.replace(old_symbol, new_symbol))
-
-
-
-
-
