@@ -97,6 +97,7 @@ project/
 ├── .vscode/
 │   └── settings.json
 │
+├── README.md
 ├── home_finances_db.sql
 ├── main.py
 └── README.md
